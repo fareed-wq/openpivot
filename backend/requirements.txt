@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+pytest
+httpx
+dnspython==2.8.0
+cryptography==50.0.1
