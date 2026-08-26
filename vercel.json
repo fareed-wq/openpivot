@@ -8,11 +8,5 @@
       "maxDuration": 60,
       "includeFiles": "backend/**"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    }
-  ]
+  }
 }
