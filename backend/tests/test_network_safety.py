@@ -6,7 +6,7 @@ from app.core.network_safety import resolve_safe_addresses, NetworkSafetyError, 
 def test_safe_ips():
     assert _is_safe_ip("8.8.8.8")
     assert _is_safe_ip("2606:4700:4700::1111")
-    
+
     assert not _is_safe_ip("127.0.0.1")
     assert not _is_safe_ip("10.0.0.1")
     assert not _is_safe_ip("172.16.0.1")

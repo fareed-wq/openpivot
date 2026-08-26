@@ -1,6 +1,5 @@
 import time
 import ipaddress
-import httpx
 import dns.resolver
 import dns.reversename
 import dns.exception
@@ -19,42 +18,39 @@ _IANA_IPV4_BOOTSTRAP_TIMESTAMP: float = 0.0
 def _get_iana_ipv4_bootstrap() -> list:
     global _IANA_IPV4_BOOTSTRAP_CACHE, _IANA_IPV4_BOOTSTRAP_TIMESTAMP
     now = time.time()
-    
+
     if _IANA_IPV4_BOOTSTRAP_CACHE and (now - _IANA_IPV4_BOOTSTRAP_TIMESTAMP) < CACHE_TTL:
         return _IANA_IPV4_BOOTSTRAP_CACHE
-        
-    with httpx.Client(timeout=httpx.Timeout(READ_TIMEOUT, connect=CONNECT_TIMEOUT)) as client:
-        try:
-            resp = client.get(IANA_IPV4_BOOTSTRAP_URL)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception:
-            return _IANA_IPV4_BOOTSTRAP_CACHE
-        
-        new_cache = []
-        for prefixes, urls in data.get("services", []):
-            best_url = None
+
+    resp = _fetch_rdap(IANA_IPV4_BOOTSTRAP_URL, connect_timeout=CONNECT_TIMEOUT, read_timeout=READ_TIMEOUT)
+    if resp.get("status") != "success":
+        return _IANA_IPV4_BOOTSTRAP_CACHE
+    data = resp.get("data", {})
+
+    new_cache = []
+    for prefixes, urls in data.get("services", []):
+        best_url = None
+        for u in urls:
+            if u.startswith("https://") and _is_safe_url(u):
+                best_url = u
+                break
+        if not best_url:
             for u in urls:
-                if u.startswith("https://") and _is_safe_url(u):
+                if _is_safe_url(u):
                     best_url = u
                     break
-            if not best_url:
-                for u in urls:
-                    if _is_safe_url(u):
-                        best_url = u
-                        break
-            
-            if best_url:
-                for prefix in prefixes:
-                    try:
-                        network = ipaddress.ip_network(prefix)
-                        new_cache.append((network, best_url))
-                    except ValueError:
-                        pass
-                        
-        _IANA_IPV4_BOOTSTRAP_CACHE = new_cache
-        _IANA_IPV4_BOOTSTRAP_TIMESTAMP = now
-        return _IANA_IPV4_BOOTSTRAP_CACHE
+
+        if best_url:
+            for prefix in prefixes:
+                try:
+                    network = ipaddress.ip_network(prefix)
+                    new_cache.append((network, best_url))
+                except ValueError:
+                    pass
+
+    _IANA_IPV4_BOOTSTRAP_CACHE = new_cache
+    _IANA_IPV4_BOOTSTRAP_TIMESTAMP = now
+    return _IANA_IPV4_BOOTSTRAP_CACHE
 
 def _get_reverse_dns(ip: str) -> dict:
     try:
@@ -83,7 +79,7 @@ def collect_ip_intelligence(ip: str) -> dict:
             return IPIntelligenceResult(ip=ip, status="blocked", queried_at=datetime.now(timezone.utc).isoformat()).model_dump()
     except ValueError:
         return IPIntelligenceResult(ip=ip, status="error", queried_at=datetime.now(timezone.utc).isoformat()).model_dump()
-        
+
     bootstrap = _get_iana_ipv4_bootstrap()
     if not bootstrap:
         # Just fail rdap and try PTR
@@ -97,7 +93,7 @@ def collect_ip_intelligence(ip: str) -> dict:
                     best_network = network
                     base_url = url
         rdap_status = "success" if base_url else "unsupported"
-        
+
     rdap_res = None
     if base_url:
         if not base_url.endswith('/'):
@@ -105,11 +101,11 @@ def collect_ip_intelligence(ip: str) -> dict:
         rdap_url = f"{base_url}ip/{ip}"
         fetch_res = _fetch_rdap(rdap_url)
         rdap_status = fetch_res["status"]
-        
+
         if rdap_status == "success":
             data = fetch_res["data"]
             rdap_res = IPRDAPIntelligence(source=fetch_res["source"])
-            
+
             rdap_res.handle = data.get("handle")
             rdap_res.name = data.get("name")
             rdap_res.start_address = data.get("startAddress")
@@ -118,10 +114,10 @@ def collect_ip_intelligence(ip: str) -> dict:
             rdap_res.type = data.get("type")
             rdap_res.country = data.get("country")
             rdap_res.parent_handle = data.get("parentHandle")
-            
+
             statuses = data.get("status", [])
             rdap_res.statuses = list(set(statuses))
-            
+
             for ev in data.get("events", []):
                 action = ev.get("eventAction", "").lower()
                 dt = ev.get("eventDate")
@@ -129,14 +125,14 @@ def collect_ip_intelligence(ip: str) -> dict:
                     rdap_res.registration_date = dt
                 elif action in ("last changed", "last update of rdap database"):
                     rdap_res.last_changed_date = dt
-                    
+
             prefixes = []
             for cidr in data.get("cidr0_cidrs", []):
                 v4_prefix = cidr.get("v4prefix")
                 length = cidr.get("length")
                 if v4_prefix and length:
                     prefixes.append(f"{v4_prefix}/{length}")
-                    
+
             if not prefixes and rdap_res.start_address and rdap_res.end_address:
                 try:
                     start = ipaddress.ip_address(rdap_res.start_address)
@@ -146,13 +142,13 @@ def collect_ip_intelligence(ip: str) -> dict:
                             prefixes.append(str(subnet))
                 except ValueError:
                     pass
-                    
+
             rdap_res.network_prefixes = list(dict.fromkeys(prefixes))
-            
+
             for ent in data.get("entities", []):
                 roles = [r.lower() for r in ent.get("roles", [])]
                 vcard = ent.get("vcardArray", [])
-                
+
                 ent_name = None
                 ent_kind = None
                 if isinstance(vcard, list) and len(vcard) > 1 and isinstance(vcard[1], list):
@@ -162,14 +158,14 @@ def collect_ip_intelligence(ip: str) -> dict:
                                 ent_name = str(prop[3])
                             elif prop[0] == "kind":
                                 ent_kind = str(prop[3])
-                
+
                 if ent_kind and ent_kind.lower() == "org" and ent_name:
                     rdap_res.organization = IPEntity(name=ent_name, handle=ent.get("handle"))
                     break # Take first org
 
     ptr_fetch = _get_reverse_dns(ip)
     ptr_res = IPReverseDNS(status=ptr_fetch["status"], hostname=ptr_fetch.get("hostname"))
-    
+
     # Determine overall status
     if rdap_status == "success" and ptr_res.status in ("success", "no_answer"):
         overall_status = "success"
@@ -180,7 +176,7 @@ def collect_ip_intelligence(ip: str) -> dict:
     else:
         # Both failed or errored
         overall_status = rdap_status
-        
+
     result = IPIntelligenceResult(
         ip=ip,
         status=overall_status,
@@ -188,5 +184,5 @@ def collect_ip_intelligence(ip: str) -> dict:
         rdap=rdap_res,
         reverse_dns=ptr_res
     )
-    
+
     return result.model_dump()

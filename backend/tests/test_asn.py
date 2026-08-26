@@ -4,7 +4,7 @@ import dns.reversename
 import dns.exception
 from unittest.mock import patch, MagicMock
 from app.intelligence.asn import (
-    collect_asn_intelligence_from_ip, 
+    collect_asn_intelligence_from_ip,
     normalize_asn,
     _get_iana_asn_bootstrap
 )
@@ -27,16 +27,15 @@ def test_asn_normalization():
     assert normalize_asn("0") is None
     assert normalize_asn("4294967295") is None
 
-@patch("app.intelligence.asn.httpx.Client.get")
 @patch("app.intelligence.asn._fetch_rdap")
 @patch("app.intelligence.asn.dns.resolver.Resolver.resolve")
-def test_successful_asn_flow(mock_resolve, mock_rdap, mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}
-    )
-    
-    mock_rdap.return_value = {
+def test_successful_asn_flow(mock_resolve, mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
+    mock_rdap.default_return = {
         "status": "success",
         "source": "https://rdap.arin.net/registry/autnum/15169",
         "data": {
@@ -61,11 +60,11 @@ def test_successful_asn_flow(mock_resolve, mock_rdap, mock_get):
             }]
         }
     }
-    
+
     class FakeAnswer:
         def __str__(self): return '"15169 | 8.8.8.0/24 | US | arin | 2014-03-14"'
     mock_resolve.return_value = [FakeAnswer()]
-    
+
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "success"
     assert res["origin"]["asns"] == [15169]
@@ -78,57 +77,56 @@ def test_cymru_dns_failures(mock_resolve):
     mock_resolve.side_effect = dns.resolver.NoAnswer()
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "not_found"
-    
+
     mock_resolve.side_effect = dns.resolver.NXDOMAIN()
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "not_found"
-    
+
     mock_resolve.side_effect = dns.exception.Timeout()
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "timeout"
-    
+
     mock_resolve.side_effect = Exception("Unknown")
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "error"
 
-@patch("app.intelligence.asn.httpx.Client.get")
 @patch("app.intelligence.asn._fetch_rdap")
 @patch("app.intelligence.asn.dns.resolver.Resolver.resolve")
-def test_rdap_failures(mock_resolve, mock_rdap, mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}
-    )
-    
+def test_rdap_failures(mock_resolve, mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
     class FakeAnswer:
         def __str__(self): return '"15169 | 8.8.8.0/24 | US | arin | 2014-03-14"'
     mock_resolve.return_value = [FakeAnswer()]
-    
+
     # RDAP 404
-    mock_rdap.return_value = {"status": "not_found"}
-    res = collect_asn_intelligence_from_ip("8.8.8.8")
-    assert res["status"] == "partial"
-    
-    # RDAP Timeout
-    mock_rdap.return_value = {"status": "timeout"}
+    mock_rdap.default_return = {"status": "not_found"}
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "partial"
 
-@patch("app.intelligence.asn.httpx.Client.get")
-def test_bootstrap_logic(mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [
+    # RDAP Timeout
+    mock_rdap.default_return = {"status": "timeout"}
+    res = collect_asn_intelligence_from_ip("8.8.8.8")
+    assert res["status"] == "partial"
+
+@patch('app.intelligence.asn._fetch_rdap')
+def test_bootstrap_logic(mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [
             [["1-100000"], ["https://rdap.arin.net/registry/"]],
             [["15169"], ["https://rdap.specific.net/registry/"]]
-        ]}
-    )
-    
+        ]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
     bootstrap = _get_iana_asn_bootstrap()
     assert len(bootstrap) == 2
     # Verify the most specific range is chosen
     # Since 15169 has range length 0 and 1-100000 has 99999, it should pick the exact match
-    
+
     best_range_len = float('inf')
     base_url = None
     for start, end, url in bootstrap:
@@ -137,7 +135,7 @@ def test_bootstrap_logic(mock_get):
             if range_len < best_range_len:
                 best_range_len = range_len
                 base_url = url
-                
+
     assert base_url == "https://rdap.specific.net/registry/"
 
 import pytest
@@ -145,35 +143,33 @@ import dns.resolver
 from unittest.mock import patch, MagicMock
 from app.intelligence.asn import collect_asn_intelligence_from_ip
 
-@patch("app.intelligence.asn.httpx.Client.get")
 @patch("app.intelligence.asn._fetch_rdap")
 @patch("app.intelligence.asn.dns.resolver.Resolver.resolve")
-def test_multiple_origin_asns(mock_resolve, mock_rdap, mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [[["15169-15170"], ["https://rdap.arin.net/registry/"]]]}
-    )
-    
-    mock_rdap.return_value = {"status": "success", "source": "src", "data": {}}
-    
+def test_multiple_origin_asns(mock_resolve, mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [[["15169-15170"], ["https://rdap.arin.net/registry/"]]]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
+    mock_rdap.default_return = {"status": "success", "source": "src", "data": {}}
+
     class FakeAnswer:
         def __str__(self): return '"15169 15170 | 8.8.8.0/24 | US | arin | 2014-03-14"'
     mock_resolve.return_value = [FakeAnswer()]
-    
+
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "success"
     assert res["origin"]["asns"] == [15169, 15170]
 
-@patch("app.intelligence.asn.httpx.Client.get")
 @patch("app.intelligence.asn._fetch_rdap")
 @patch("app.intelligence.asn.dns.resolver.Resolver.resolve")
-def test_privacy_filtering(mock_resolve, mock_rdap, mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}
-    )
-    
-    mock_rdap.return_value = {
+def test_privacy_filtering(mock_resolve, mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
+    mock_rdap.default_return = {
         "status": "success",
         "source": "src",
         "data": {
@@ -190,15 +186,15 @@ def test_privacy_filtering(mock_resolve, mock_rdap, mock_get):
             ]
         }
     }
-    
+
     class FakeAnswer:
         def __str__(self): return '"15169 | 8.8.8.0/24 | US | arin | 2014-03-14"'
     mock_resolve.return_value = [FakeAnswer()]
-    
+
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "success"
     assert res["asn"]["organization"]["name"] == "Google LLC"
-    
+
     import json
     res_str = json.dumps(res)
     assert "John Doe" not in res_str
@@ -232,7 +228,7 @@ def test_cymru_prefix_validation(mock_resolve):
     mock_resolve.return_value = [FakeAnswer1()]
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["origin"]["prefix"] is None
-    
+
     # Prefix not containing IP -> discarded
     class FakeAnswer2:
         def __str__(self): return '"15169 | 9.9.9.0/24 | US | arin"'
@@ -247,17 +243,16 @@ def test_cymru_prefix_validation(mock_resolve):
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["origin"]["prefix"] == "8.8.8.0/24"
 
-@patch("app.intelligence.asn.httpx.Client.get")
 @patch("app.intelligence.asn._fetch_rdap")
 @patch("app.intelligence.asn.dns.resolver.Resolver.resolve")
-def test_asn_rdap_normalization_error(mock_resolve, mock_rdap, mock_get):
-    mock_get.return_value = MagicMock(
-        status_code=200, 
-        json=lambda: {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}
-    )
-    
+def test_asn_rdap_normalization_error(mock_resolve, mock_rdap):
+    def mock_rdap_effect(url, **kwargs):
+        if "data.iana.org" in str(url): return {"status": "success", "data": {"services": [[["15169"], ["https://rdap.arin.net/registry/"]]]}}
+        return getattr(mock_rdap, "default_return", {"status": "error"})
+    mock_rdap.side_effect = mock_rdap_effect
+
     # Start and end autnum do not include the queried ASN
-    mock_rdap.return_value = {
+    mock_rdap.default_return = {
         "status": "success",
         "source": "src",
         "data": {
@@ -265,11 +260,11 @@ def test_asn_rdap_normalization_error(mock_resolve, mock_rdap, mock_get):
             "endAutnum": 9999
         }
     }
-    
+
     class FakeAnswer:
         def __str__(self): return '"15169 | 8.8.8.0/24 | US | arin"'
     mock_resolve.return_value = [FakeAnswer()]
-    
+
     res = collect_asn_intelligence_from_ip("8.8.8.8")
     assert res["status"] == "partial"
     assert res.get("asn") is None

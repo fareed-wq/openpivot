@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Optional, Dict, Tuple, List
 
-from app.core.network_safety import resolve_safe_addresses, NetworkSafetyError
+from app.core.network_safety import resolve_safe_addresses, NetworkSafetyError, SafeHTTPConnection, SafeHTTPSConnection
 from app.models.http_metadata import HTTPMetadataResult, HTTPSContext, RedirectRecord
 
 CONNECT_TIMEOUT = 4.0
@@ -23,24 +23,7 @@ ALLOWED_HEADERS = {
     "x-powered-by"
 }
 
-class SafeHTTPConnection(http.client.HTTPConnection):
-    def __init__(self, ip: str, domain: str, *args, **kwargs):
-        self._safe_ip = ip
-        self._domain = domain
-        super().__init__(ip, *args, **kwargs)
-        
-    def connect(self):
-        self.sock = socket.create_connection((self._safe_ip, self.port), self.timeout)
 
-class SafeHTTPSConnection(http.client.HTTPSConnection):
-    def __init__(self, ip: str, domain: str, *args, **kwargs):
-        self._safe_ip = ip
-        self._domain = domain
-        super().__init__(ip, *args, **kwargs)
-        
-    def connect(self):
-        sock = socket.create_connection((self._safe_ip, self.port), self.timeout)
-        self.sock = self._context.wrap_socket(sock, server_hostname=self._domain)
 
 def _extract_title(html_bytes: bytes) -> Optional[str]:
     try:
@@ -76,13 +59,13 @@ def _fetch_url(url: str, method: str = "GET") -> Tuple[Optional[http.client.HTTP
     hostname = parsed.hostname
     if not hostname:
         return None, None, None, "invalid url"
-        
+
     scheme = parsed.scheme
     if scheme not in ("http", "https"):
         return None, None, None, "unsupported scheme"
-        
+
     port = 443 if scheme == "https" else 80
-    
+
     try:
         ips = resolve_safe_addresses(hostname)
     except NetworkSafetyError as e:
@@ -98,19 +81,19 @@ def _fetch_url(url: str, method: str = "GET") -> Tuple[Optional[http.client.HTTP
                 conn = SafeHTTPSConnection(ip, hostname, timeout=CONNECT_TIMEOUT, context=ctx)
             else:
                 conn = SafeHTTPConnection(ip, hostname, timeout=CONNECT_TIMEOUT)
-                
+
             path = parsed.path if parsed.path else "/"
             # Ensure fragment is NOT included
             if parsed.query:
                 path += "?" + parsed.query
-                
+
             headers = {
                 "Host": hostname,
                 "User-Agent": "OpenPivot/0.1",
                 "Connection": "close"
             }
             conn.request(method, path, headers=headers)
-            
+
             # Use sock.settimeout to enforce read timeout if available
             if getattr(conn, 'sock', None):
                 conn.sock.settimeout(READ_TIMEOUT)
@@ -129,7 +112,7 @@ def _fetch_url(url: str, method: str = "GET") -> Tuple[Optional[http.client.HTTP
         except Exception as e:
             print("ERROR IN FETCH:", str(e))
             last_err = "error"
-            
+
     return None, None, None, last_err
 
 def collect_http_metadata(domain: str) -> dict:
@@ -138,16 +121,16 @@ def collect_http_metadata(domain: str) -> dict:
         status="error",
         queried_at=datetime.now(timezone.utc).isoformat()
     )
-    
+
     initial_url = f"https://{domain}/"
     result.initial_url = initial_url
-    
+
     current_url = initial_url
     redirects_list = []
-    
+
     https_reachable = False
     https_verified = False
-    
+
     # Check HTTPS first
     resp, peer_ip, ssl_err, net_err = _fetch_url(current_url)
     if ssl_err == "ssl_verify_failed":
@@ -170,9 +153,9 @@ def collect_http_metadata(domain: str) -> dict:
         current_url = f"http://{domain}/"
         result.initial_url = current_url
         resp, peer_ip, ssl_err, net_err = _fetch_url(current_url)
-        
+
     result.https = HTTPSContext(reachable=https_reachable, verified=https_verified)
-    
+
     redirect_count = 0
     while redirect_count < MAX_REDIRECTS:
         if resp is None:
@@ -186,32 +169,32 @@ def collect_http_metadata(domain: str) -> dict:
                 result.status = "unavailable"
             else:
                 result.status = "error"
-            
+
             # If we had successful prior hops but the redirect failed, it's a partial success
             if redirect_count > 0:
                 result.status = "partial"
-                
+
             result.redirects = redirects_list
             return result.model_dump(by_alias=True)
-            
+
         status_code = resp.status
         if status_code in (301, 302, 303, 307, 308):
             loc = resp.getheader("Location")
             if not loc:
                 break
-            
+
             loc = urllib.parse.urljoin(current_url, loc)
             if not _is_safe_redirect_url(loc):
                 result.status = "partial" if redirect_count > 0 else "blocked"
                 result.redirects = redirects_list
                 return result.model_dump(by_alias=True)
-                
+
             redirects_list.append(RedirectRecord(**{
                 "status_code": status_code,
                 "from": current_url,
                 "to": loc
             }))
-            
+
             current_url = loc
             redirect_count += 1
             # Close previous connection
@@ -219,7 +202,7 @@ def collect_http_metadata(domain: str) -> dict:
             resp, peer_ip, ssl_err, net_err = _fetch_url(current_url)
         else:
             break
-            
+
     if resp is None:
         # Loop ended but last fetch failed
         if redirect_count > 0:
@@ -228,22 +211,22 @@ def collect_http_metadata(domain: str) -> dict:
             result.status = "error"
         result.redirects = redirects_list
         return result.model_dump(by_alias=True)
-        
+
     # We have a final response
     if redirect_count >= MAX_REDIRECTS and resp.status in (301, 302, 303, 307, 308):
         result.status = "partial" # Hit redirect limit
     else:
         result.status = "success"
-        
+
     result.final_url = current_url
-    
+
     parsed = urllib.parse.urlparse(current_url)
     result.scheme = parsed.scheme
     result.hostname = parsed.hostname
     result.peer_ip = peer_ip
     result.status_code = resp.status
     result.redirects = redirects_list
-    
+
     headers_dict = {}
     for k, v in resp.getheaders():
         k_lower = k.lower()
@@ -251,7 +234,7 @@ def collect_http_metadata(domain: str) -> dict:
             # Bound header values to 1024 characters
             headers_dict[k_lower] = v[:1024]
     result.headers = headers_dict
-    
+
     # Read body for title
     content_type = headers_dict.get("content-type", "").lower()
     if "text/html" in content_type:
@@ -264,11 +247,11 @@ def collect_http_metadata(domain: str) -> dict:
             result.status = "partial"
         except Exception:
             pass
-            
+
     resp.close()
-    
+
     # Force partial status if HTTPS fallback occurred
     if result.status == "success" and not https_verified:
         result.status = "partial"
-        
+
     return result.model_dump(by_alias=True)
