@@ -38,6 +38,7 @@ export default function RelatedInfrastructure({ correlation, onPivot, isInvestig
 
   return (
     <SectionCard
+      id="sec-infra"
       title="Related Infrastructure"
       collapsible={true}
       defaultOpen={false}

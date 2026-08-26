@@ -4,6 +4,7 @@ import StatusBadge from './report/StatusBadge';
 import DomainReport from './report/DomainReport';
 import IPv4Report from './report/IPv4Report';
 import RelatedInfrastructure from './report/RelatedInfrastructure';
+import SectionNav from './report/SectionNav';
 
 export default function InvestigationResult({ result, onPivot, isInvestigating }) {
   if (!result) return null;
@@ -12,6 +13,9 @@ export default function InvestigationResult({ result, onPivot, isInvestigating }
 
   return (
     <div className="w-full text-left space-y-6 mt-8">
+      {/* Navigation */}
+      <SectionNav type={target?.type} collectors={collectors} correlation={correlation} />
+
       {/* Overview Section */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h3 className="text-2xl font-extrabold text-gray-900 mb-4 border-b border-gray-200 pb-3 flex flex-wrap justify-between items-center gap-4">

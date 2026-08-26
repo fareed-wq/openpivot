@@ -3,6 +3,7 @@ import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
 import PivotButton from './PivotButton';
+import CopyButton from './CopyButton';
 
 export default function IPv4Report({ target, collectors, onPivot, isInvestigating }) {
   const ip = collectors?.ip;
@@ -11,9 +12,9 @@ export default function IPv4Report({ target, collectors, onPivot, isInvestigatin
   return (
     <div className="space-y-6">
       {/* IP Overview */}
-      <SectionCard title="IP Overview">
+      <SectionCard id="sec-overview" title="IP Overview">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <KeyValueRow label="IP Address" value={target.normalized} />
+          <KeyValueRow label="IP Address" value={<div className="flex items-center gap-1"><span>{target.normalized}</span><CopyButton text={target.normalized} /></div>} />
           {ip?.reverse_dns?.status === 'success' && ip.reverse_dns.hostname && (
             <div className="flex items-center gap-2 col-span-1 md:col-span-2">
               <KeyValueRow label="Reverse DNS Hostname" value={ip.reverse_dns.hostname} />
@@ -30,10 +31,10 @@ export default function IPv4Report({ target, collectors, onPivot, isInvestigatin
 
       {/* Network RDAP */}
       {ip && (
-        <SectionCard title="Network Allocation (RDAP)" status={<StatusBadge status={ip.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-rdap" title="Network Allocation (RDAP)" status={<StatusBadge status={ip.status} />} collapsible={true} defaultOpen={false}>
           {ip.status === 'success' && ip.rdap ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-              <KeyValueRow label="Handle" value={ip.rdap.handle} />
+              <KeyValueRow label="Handle" value={<div className="flex items-center gap-1"><span>{ip.rdap.handle}</span><CopyButton text={ip.rdap.handle} /></div>} />
               <KeyValueRow label="Network Name" value={ip.rdap.name} />
               <KeyValueRow label="Start Address" value={ip.rdap.start_address} />
               <KeyValueRow label="End Address" value={ip.rdap.end_address} />
@@ -76,12 +77,12 @@ export default function IPv4Report({ target, collectors, onPivot, isInvestigatin
 
       {/* Reverse DNS */}
       {ip && (
-        <SectionCard title="Reverse DNS" collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-reversedns" title="Reverse DNS" collapsible={true} defaultOpen={false}>
           <div className="text-sm">
             {ip.reverse_dns?.status === 'success' ? (
               ip.reverse_dns.hostname ? (
                 <div className="flex items-center gap-2">
-                  <KeyValueRow label="Hostname" value={ip.reverse_dns.hostname} />
+                  <KeyValueRow label="Hostname" value={<div className="flex items-center gap-1"><span>{ip.reverse_dns.hostname}</span><CopyButton text={ip.reverse_dns.hostname} /></div>} />
                   <PivotButton target={ip.reverse_dns.hostname} onPivot={onPivot} disabled={isInvestigating} />
                 </div>
               ) : (
@@ -96,7 +97,7 @@ export default function IPv4Report({ target, collectors, onPivot, isInvestigatin
 
       {/* ASN Intelligence */}
       {asn && (
-        <SectionCard title="Routing Information (ASN)" status={<StatusBadge status={asn.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-asn" title="Routing Information (ASN)" status={<StatusBadge status={asn.status} />} collapsible={true} defaultOpen={false}>
           {asn.status === 'success' ? (
             <div className="space-y-6 text-sm">
               {asn.origin && (
@@ -116,7 +117,7 @@ export default function IPv4Report({ target, collectors, onPivot, isInvestigatin
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">ASN Registration</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <KeyValueRow label="ASN Number" value={asn.asn.number} />
+                    <KeyValueRow label="ASN Number" value={<div className="flex items-center gap-1"><span>{asn.asn.number}</span><CopyButton text={asn.asn.number} /></div>} />
                     <KeyValueRow label="ASN Name" value={asn.asn.name} />
                     <KeyValueRow label="Handle" value={asn.asn.handle} />
                     <KeyValueRow label="Start ASN" value={asn.asn.start_autnum} />
