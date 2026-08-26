@@ -10,6 +10,17 @@ export default function DomainReport({ target, collectors }) {
   const tls = collectors?.tls;
   const httpMeta = collectors?.http_metadata;
 
+  const getDnsSubtitle = () => {
+    if (!dns?.records) return null;
+    const parts = [];
+    ['A', 'AAAA', 'MX', 'NS', 'TXT', 'CNAME', 'CAA'].forEach(t => {
+      if (dns.records[t]?.status === 'success' && dns.records[t].values?.length) {
+        parts.push(`${dns.records[t].values.length} ${t}`);
+      }
+    });
+    return parts.length > 0 ? parts.join(' \u00B7 ') : null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Domain Overview */}
@@ -27,7 +38,7 @@ export default function DomainReport({ target, collectors }) {
 
       {/* DNS Intelligence */}
       {dns && (
-        <SectionCard title="DNS Intelligence" status={<StatusBadge status={dns.status} />}>
+        <SectionCard title="DNS Intelligence" status={<StatusBadge status={dns.status} />} collapsible={true} defaultOpen={false} subtitle={getDnsSubtitle()}>
           {dns.status === 'success' ? (
             <div className="space-y-4">
               {['A', 'AAAA', 'MX', 'NS', 'TXT', 'CNAME', 'CAA'].map(recordType => {
@@ -76,7 +87,7 @@ export default function DomainReport({ target, collectors }) {
 
       {/* Email Security */}
       {email && (
-        <SectionCard title="Email Security" status={<StatusBadge status={email.status} />}>
+        <SectionCard title="Email Security" status={<StatusBadge status={email.status} />} collapsible={true} defaultOpen={false}>
           {email.status === 'success' ? (
             <div className="grid grid-cols-1 gap-4 text-sm">
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -110,7 +121,7 @@ export default function DomainReport({ target, collectors }) {
 
       {/* RDAP */}
       {rdap && (
-        <SectionCard title="Registration Information (RDAP)" status={<StatusBadge status={rdap.status} />}>
+        <SectionCard title="Registration Information (RDAP)" status={<StatusBadge status={rdap.status} />} collapsible={true} defaultOpen={false}>
           {rdap.status === 'success' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <KeyValueRow label="Registrar" value={rdap.registrar.name} />
@@ -150,7 +161,7 @@ export default function DomainReport({ target, collectors }) {
 
       {/* TLS Certificate */}
       {tls && (
-        <SectionCard title="Certificate Information (TLS)" status={<StatusBadge status={tls.status} />}>
+        <SectionCard title="Certificate Information (TLS)" status={<StatusBadge status={tls.status} />} collapsible={true} defaultOpen={false}>
           {tls.status === 'success' && tls.certificate ? (
             <div className="space-y-6 text-sm">
               <div>
@@ -215,7 +226,7 @@ export default function DomainReport({ target, collectors }) {
 
       {/* HTTP Metadata */}
       {httpMeta && (
-        <SectionCard title="HTTP Metadata" status={<StatusBadge status={httpMeta.status} />}>
+        <SectionCard title="HTTP Metadata" status={<StatusBadge status={httpMeta.status} />} collapsible={true} defaultOpen={false}>
           {httpMeta.status === 'success' ? (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

@@ -36,7 +36,12 @@ export default function RelatedInfrastructure({ correlation }) {
   };
 
   return (
-    <SectionCard title="Related Infrastructure">
+    <SectionCard
+      title="Related Infrastructure"
+      collapsible={true}
+      defaultOpen={false}
+      subtitle={`${entities.length} entities \u00B7 ${relationships.length} relationships`}
+    >
       <div className="text-sm text-gray-700 mb-6 flex gap-4">
         <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
           <span className="font-semibold text-gray-900 text-lg">{entities.length}</span> Entities
@@ -55,10 +60,10 @@ export default function RelatedInfrastructure({ correlation }) {
               // Or find the entity to get its value
               const sourceEntity = entities.find(e => e.id === r.source);
               const targetEntity = entities.find(e => e.id === r.target);
-              
+
               const sourceValue = sourceEntity ? sourceEntity.value : r.source;
               const targetValue = targetEntity ? targetEntity.value : r.target;
-              
+
               return (
                 <div key={idx} className="text-sm bg-gray-50 p-2 rounded border border-gray-200 flex flex-wrap items-center gap-x-2">
                   <span className="font-medium text-gray-800 break-all">{sourceValue}</span>

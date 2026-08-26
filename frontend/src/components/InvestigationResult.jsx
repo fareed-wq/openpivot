@@ -1,4 +1,5 @@
 import React from 'react';
+import InvestigationSummary from './report/InvestigationSummary';
 import StatusBadge from './report/StatusBadge';
 import DomainReport from './report/DomainReport';
 import IPv4Report from './report/IPv4Report';
@@ -43,6 +44,9 @@ export default function InvestigationResult({ result }) {
           </div>
         </div>
       </section>
+
+      {/* Investigation Summary */}
+      <InvestigationSummary target={target} collectors={collectors} correlation={correlation} />
 
       {/* Collector Statuses */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

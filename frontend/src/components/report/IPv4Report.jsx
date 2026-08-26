@@ -26,7 +26,7 @@ export default function IPv4Report({ target, collectors }) {
 
       {/* Network RDAP */}
       {ip && (
-        <SectionCard title="Network Allocation (RDAP)" status={<StatusBadge status={ip.status} />}>
+        <SectionCard title="Network Allocation (RDAP)" status={<StatusBadge status={ip.status} />} collapsible={true} defaultOpen={false}>
           {ip.status === 'success' && ip.rdap ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <KeyValueRow label="Handle" value={ip.rdap.handle} />
@@ -41,7 +41,7 @@ export default function IPv4Report({ target, collectors }) {
               <KeyValueRow label="Last Changed" value={ip.rdap.last_changed_date ? new Date(ip.rdap.last_changed_date).toLocaleString() : null} />
               <KeyValueRow label="Organization" value={ip.rdap.organization?.name} />
               <KeyValueRow label="RDAP Source" value={ip.rdap.source} className="col-span-1 md:col-span-2 break-all" />
-              
+
               {ip.rdap.statuses?.length > 0 && (
                 <div className="col-span-1 md:col-span-2 mt-2">
                   <span className="font-semibold text-gray-700 block mb-1">Statuses:</span>
@@ -52,7 +52,7 @@ export default function IPv4Report({ target, collectors }) {
                   </div>
                 </div>
               )}
-              
+
               {ip.rdap.network_prefixes?.length > 0 && (
                 <div className="col-span-1 md:col-span-2 mt-2">
                   <span className="font-semibold text-gray-700 block mb-1">Network Prefixes:</span>
@@ -72,7 +72,7 @@ export default function IPv4Report({ target, collectors }) {
 
       {/* Reverse DNS */}
       {ip && (
-        <SectionCard title="Reverse DNS">
+        <SectionCard title="Reverse DNS" collapsible={true} defaultOpen={false}>
           <div className="text-sm">
             {ip.reverse_dns?.status === 'success' ? (
               ip.reverse_dns.hostname ? (
@@ -89,7 +89,7 @@ export default function IPv4Report({ target, collectors }) {
 
       {/* ASN Intelligence */}
       {asn && (
-        <SectionCard title="Routing Information (ASN)" status={<StatusBadge status={asn.status} />}>
+        <SectionCard title="Routing Information (ASN)" status={<StatusBadge status={asn.status} />} collapsible={true} defaultOpen={false}>
           {asn.status === 'success' ? (
             <div className="space-y-6 text-sm">
               {asn.origin && (
