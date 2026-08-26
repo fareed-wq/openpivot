@@ -2,8 +2,9 @@ import React from 'react';
 import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
+import PivotButton from './PivotButton';
 
-export default function DomainReport({ target, collectors }) {
+export default function DomainReport({ target, collectors, onPivot, isInvestigating }) {
   const dns = collectors?.dns;
   const email = collectors?.email_security;
   const rdap = collectors?.rdap;
@@ -56,10 +57,15 @@ export default function DomainReport({ target, collectors }) {
                       <div className="text-sm text-gray-700 flex flex-wrap gap-2">
                         {recordData.values?.map((val, idx) => {
                           if (recordType === 'MX' && typeof val === 'object' && val !== null) {
-                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">Priority {val.priority ?? val.preference}: {val.host ?? val.exchange}</div>;
+                            return (
+                              <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200 flex items-center">
+                                <span>Priority {val.priority ?? val.preference}: {val.host ?? val.exchange}</span>
+                                {val.host && <PivotButton target={val.host} onPivot={onPivot} disabled={isInvestigating} />}
+                              </div>
+                            );
                           } else if (recordType === 'CAA' && typeof val === 'object' && val !== null) {
                             return (
-                              <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full md:w-auto">
+                              <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full md:w-auto flex items-center">
                                 <span className="text-gray-500 mr-2">Flags: {val.flags}</span>
                                 <span className="text-gray-500 mr-2">Tag: {val.tag}</span>
                                 <span className="font-mono break-all">{val.value}</span>
@@ -67,10 +73,15 @@ export default function DomainReport({ target, collectors }) {
                             );
                           } else if (recordType === 'TXT') {
                             const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val);
-                            return <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full break-all whitespace-pre-wrap">{displayVal}</div>;
+                            return <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full break-all whitespace-pre-wrap flex items-center">{displayVal}</div>;
                           } else {
                             const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val);
-                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">{displayVal}</div>;
+                            return (
+                              <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200 flex items-center">
+                                <span>{displayVal}</span>
+                                {(recordType === 'A' || recordType === 'NS') && <PivotButton target={String(val)} onPivot={onPivot} disabled={isInvestigating} />}
+                              </div>
+                            );
                           }
                         })}
                       </div>

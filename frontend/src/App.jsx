@@ -8,6 +8,8 @@ function App() {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
+  const [pivotContext, setPivotContext] = useState(null);
+
   useEffect(() => {
     fetch('/api/health')
       .then((res) => {
@@ -22,11 +24,8 @@ function App() {
       });
   }, []);
 
-  const handleInvestigate = async (e) => {
-    e.preventDefault();
-    const trimmedTarget = target.trim();
-    if (!trimmedTarget) return;
-
+  const executeInvestigation = async (targetStr) => {
+    if (!targetStr) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -37,7 +36,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ target: trimmedTarget }),
+        body: JSON.stringify({ target: targetStr }),
       });
 
       if (!response.ok) {
@@ -58,6 +57,31 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleInvestigate = (e) => {
+    e.preventDefault();
+    const trimmedTarget = target.trim();
+    if (!trimmedTarget) return;
+
+    setPivotContext(null); // Clear pivot context for manual investigation
+    executeInvestigation(trimmedTarget);
+  };
+
+  const handlePivot = (newTarget) => {
+    if (isLoading) return;
+    const normalizedTarget = newTarget.trim().replace(/\.$/, '');
+    if (!normalizedTarget) return;
+
+    const source = result?.target?.normalized || target;
+    setPivotContext({
+      source,
+      target: normalizedTarget
+    });
+
+    setTarget(normalizedTarget);
+    executeInvestigation(normalizedTarget);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -105,8 +129,18 @@ function App() {
                 {error}
               </div>
             )}
+            {pivotContext && (
+              <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100 text-left flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  Pivoted from <span className="font-semibold">{pivotContext.source}</span> &rarr; <span className="font-semibold">{pivotContext.target}</span>
+                </span>
+              </div>
+            )}
           </div>
-          <InvestigationResult result={result} />
+          <InvestigationResult result={result} onPivot={handlePivot} isInvestigating={isLoading} />
 
           <p className="text-sm text-gray-500 mt-8 pb-8">
             OpenPivot exclusively utilizes publicly available technical information.

@@ -2,8 +2,9 @@ import React from 'react';
 import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
+import PivotButton from './PivotButton';
 
-export default function IPv4Report({ target, collectors }) {
+export default function IPv4Report({ target, collectors, onPivot, isInvestigating }) {
   const ip = collectors?.ip;
   const asn = collectors?.asn;
 
@@ -14,7 +15,10 @@ export default function IPv4Report({ target, collectors }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <KeyValueRow label="IP Address" value={target.normalized} />
           {ip?.reverse_dns?.status === 'success' && ip.reverse_dns.hostname && (
-            <KeyValueRow label="Reverse DNS Hostname" value={ip.reverse_dns.hostname} />
+            <div className="flex items-center gap-2 col-span-1 md:col-span-2">
+              <KeyValueRow label="Reverse DNS Hostname" value={ip.reverse_dns.hostname} />
+              <PivotButton target={ip.reverse_dns.hostname} onPivot={onPivot} disabled={isInvestigating} />
+            </div>
           )}
           {ip?.rdap?.name && <KeyValueRow label="Network Name" value={ip.rdap.name} />}
           {ip?.rdap?.organization?.name && <KeyValueRow label="Organization" value={ip.rdap.organization.name} />}
@@ -76,7 +80,10 @@ export default function IPv4Report({ target, collectors }) {
           <div className="text-sm">
             {ip.reverse_dns?.status === 'success' ? (
               ip.reverse_dns.hostname ? (
-                <KeyValueRow label="Hostname" value={ip.reverse_dns.hostname} />
+                <div className="flex items-center gap-2">
+                  <KeyValueRow label="Hostname" value={ip.reverse_dns.hostname} />
+                  <PivotButton target={ip.reverse_dns.hostname} onPivot={onPivot} disabled={isInvestigating} />
+                </div>
               ) : (
                 <div className="text-gray-500">No PTR record returned</div>
               )

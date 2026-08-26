@@ -1,5 +1,6 @@
 import React from 'react';
 import SectionCard from './SectionCard';
+import PivotButton from './PivotButton';
 
 const TYPE_LABELS = {
   resolves_to: 'Resolves to',
@@ -14,7 +15,7 @@ const TYPE_LABELS = {
 
 const formatRelType = (type) => TYPE_LABELS[type] || type.replace(/_/g, ' ');
 
-export default function RelatedInfrastructure({ correlation }) {
+export default function RelatedInfrastructure({ correlation, onPivot, isInvestigating }) {
   if (!correlation) return null;
   const { entities = [], relationships = [] } = correlation;
 
@@ -85,8 +86,13 @@ export default function RelatedInfrastructure({ correlation }) {
                 <h5 className="text-sm font-semibold text-gray-700 mb-2">{typeDisplayNames[type] || type}</h5>
                 <ul className="text-sm space-y-1">
                   {items.map((e, idx) => (
-                    <li key={idx} className="text-gray-600 truncate bg-gray-50 px-2 py-1 rounded border border-gray-100" title={e.value}>
-                      {e.value}
+                    <li key={idx} className="text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 flex items-center gap-2 overflow-hidden" title={e.value}>
+                      <span className="truncate">{e.value}</span>
+                      {(type === 'domain' || type === 'ip') && (
+                        <div className="ml-auto flex-shrink-0">
+                          <PivotButton target={e.value} onPivot={onPivot} disabled={isInvestigating} />
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
