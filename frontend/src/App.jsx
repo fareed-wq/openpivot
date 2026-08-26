@@ -9,6 +9,7 @@ function App() {
   const [result, setResult] = useState(null);
 
   const [pivotContext, setPivotContext] = useState(null);
+  const [previousSnapshot, setPreviousSnapshot] = useState(null);
 
   useEffect(() => {
     fetch('/api/health')
@@ -65,6 +66,7 @@ function App() {
     if (!trimmedTarget) return;
 
     setPivotContext(null); // Clear pivot context for manual investigation
+    setPreviousSnapshot(null); // Clear previous snapshot for manual investigation
     executeInvestigation(trimmedTarget);
   };
 
@@ -74,6 +76,12 @@ function App() {
     if (!normalizedTarget) return;
 
     const source = result?.target?.normalized || target;
+    setPreviousSnapshot({
+      target: source,
+      result: result,
+      pivotContext: pivotContext
+    });
+
     setPivotContext({
       source,
       target: normalizedTarget
@@ -81,6 +89,16 @@ function App() {
 
     setTarget(normalizedTarget);
     executeInvestigation(normalizedTarget);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => {
+    if (isLoading || !previousSnapshot) return;
+
+    setTarget(previousSnapshot.target);
+    setResult(previousSnapshot.result);
+    setPivotContext(previousSnapshot.pivotContext);
+    setPreviousSnapshot(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -130,13 +148,25 @@ function App() {
               </div>
             )}
             {pivotContext && (
-              <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100 text-left flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  Pivoted from <span className="font-semibold">{pivotContext.source}</span> &rarr; <span className="font-semibold">{pivotContext.target}</span>
-                </span>
+              <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100 text-left flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
+                  </svg>
+                  <span>
+                    Pivoted from <span className="font-semibold">{pivotContext.source}</span> &rarr; <span className="font-semibold">{pivotContext.target}</span>
+                  </span>
+                </div>
+                {previousSnapshot && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    disabled={isLoading}
+                    className="flex-shrink-0 inline-flex items-center gap-1 bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-md border border-blue-200 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    &larr; Back to {previousSnapshot.target || previousSnapshot.result?.target?.normalized}
+                  </button>
+                )}
               </div>
             )}
           </div>
