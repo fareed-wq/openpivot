@@ -1,0 +1,12 @@
+[project]
+name = "openpivot"
+version = "0.1.1"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pytest",
+    "httpx",
+    "dnspython==2.8.0",
+    "cryptography==50.0.1"
+]
