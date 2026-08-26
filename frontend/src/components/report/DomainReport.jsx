@@ -44,12 +44,22 @@ export default function DomainReport({ target, collectors }) {
                     ) : (
                       <div className="text-sm text-gray-700 flex flex-wrap gap-2">
                         {recordData.values?.map((val, idx) => {
-                          if (recordType === 'MX' && typeof val === 'object') {
-                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">Priority {val.preference}: {val.exchange}</div>;
+                          if (recordType === 'MX' && typeof val === 'object' && val !== null) {
+                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">Priority {val.priority ?? val.preference}: {val.host ?? val.exchange}</div>;
+                          } else if (recordType === 'CAA' && typeof val === 'object' && val !== null) {
+                            return (
+                              <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full md:w-auto">
+                                <span className="text-gray-500 mr-2">Flags: {val.flags}</span>
+                                <span className="text-gray-500 mr-2">Tag: {val.tag}</span>
+                                <span className="font-mono break-all">{val.value}</span>
+                              </div>
+                            );
                           } else if (recordType === 'TXT') {
-                            return <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full break-all whitespace-pre-wrap">{val}</div>;
+                            const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val);
+                            return <div key={idx} className="bg-gray-50 px-3 py-2 rounded border border-gray-200 w-full break-all whitespace-pre-wrap">{displayVal}</div>;
                           } else {
-                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">{val}</div>;
+                            const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val);
+                            return <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200">{displayVal}</div>;
                           }
                         })}
                       </div>
