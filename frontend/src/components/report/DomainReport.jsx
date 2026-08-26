@@ -16,12 +16,12 @@ export default function DomainReport({ target, collectors }) {
       <SectionCard title="Domain Overview">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <KeyValueRow label="Domain" value={target.normalized} />
-          {rdap?.rdap?.registrar && <KeyValueRow label="Registrar" value={rdap.rdap.registrar} />}
-          {rdap?.rdap?.registration_date && <KeyValueRow label="Registration Date" value={new Date(rdap.rdap.registration_date).toLocaleString()} />}
-          {rdap?.rdap?.expiration_date && <KeyValueRow label="Expiration Date" value={new Date(rdap.rdap.expiration_date).toLocaleString()} />}
-          {httpMeta?.status === 'success' && <KeyValueRow label="HTTPS Reachable" value={httpMeta.reachable ? 'Yes' : 'No'} />}
-          {httpMeta?.status === 'success' && httpMeta.reachable && <KeyValueRow label="HTTP Status" value={httpMeta.status_code} />}
-          {httpMeta?.status === 'success' && httpMeta.reachable && <KeyValueRow label="Page Title" value={httpMeta.title || 'No title'} />}
+          {rdap?.registrar?.name && <KeyValueRow label="Registrar" value={rdap.registrar.name} />}
+          {rdap?.registration_date && <KeyValueRow label="Registration Date" value={new Date(rdap.registration_date).toLocaleString()} />}
+          {rdap?.expiration_date && <KeyValueRow label="Expiration Date" value={new Date(rdap.expiration_date).toLocaleString()} />}
+          {httpMeta?.status === 'success' && <KeyValueRow label="HTTPS Reachable" value={httpMeta.https?.reachable ? 'Yes' : 'No'} />}
+          {httpMeta?.status === 'success' && httpMeta.https?.reachable && <KeyValueRow label="HTTP Status" value={httpMeta.status_code} />}
+          {httpMeta?.status === 'success' && httpMeta.https?.reachable && <KeyValueRow label="Page Title" value={httpMeta.title || 'No title'} />}
         </div>
       </SectionCard>
 
@@ -84,7 +84,7 @@ export default function DomainReport({ target, collectors }) {
                 <div className="text-gray-700 mb-2">Status: <span className="font-medium">{email.spf?.status === 'present' ? 'Present' : email.spf?.status === 'absent' ? 'Absent' : 'Unavailable'}</span></div>
                 {email.spf?.record && <div className="text-gray-600 break-all">{email.spf.record}</div>}
               </div>
-              
+
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <h4 className="font-semibold text-gray-800 mb-2">DMARC</h4>
                 <div className="text-gray-700 mb-2">Status: <span className="font-medium">{email.dmarc?.status === 'present' ? 'Present' : email.dmarc?.status === 'absent' ? 'Absent' : 'Unavailable'}</span></div>
@@ -111,31 +111,31 @@ export default function DomainReport({ target, collectors }) {
       {/* RDAP */}
       {rdap && (
         <SectionCard title="Registration Information (RDAP)" status={<StatusBadge status={rdap.status} />}>
-          {rdap.status === 'success' && rdap.rdap ? (
+          {rdap.status === 'success' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-              <KeyValueRow label="Registrar" value={rdap.rdap.registrar} />
-              <KeyValueRow label="Handle" value={rdap.rdap.handle} />
-              <KeyValueRow label="Registration Date" value={rdap.rdap.registration_date ? new Date(rdap.rdap.registration_date).toLocaleString() : null} />
-              <KeyValueRow label="Expiration Date" value={rdap.rdap.expiration_date ? new Date(rdap.rdap.expiration_date).toLocaleString() : null} />
-              <KeyValueRow label="Last Changed" value={rdap.rdap.last_changed_date ? new Date(rdap.rdap.last_changed_date).toLocaleString() : null} />
-              <KeyValueRow label="Organization" value={rdap.rdap.organization} />
-              
-              {rdap.rdap.nameservers?.length > 0 && (
+              <KeyValueRow label="Registrar" value={rdap.registrar.name} />
+              <KeyValueRow label="Handle" value={rdap.handle} />
+              <KeyValueRow label="Registration Date" value={rdap.registration_date ? new Date(rdap.registration_date).toLocaleString() : null} />
+              <KeyValueRow label="Expiration Date" value={rdap.expiration_date ? new Date(rdap.expiration_date).toLocaleString() : null} />
+              <KeyValueRow label="Last Changed" value={rdap.last_changed_date ? new Date(rdap.last_changed_date).toLocaleString() : null} />
+              <KeyValueRow label="Organization" value={rdap.organization?.name} />
+
+              {rdap.nameservers?.length > 0 && (
                 <div className="col-span-1 md:col-span-2 mt-2">
                   <span className="font-semibold text-gray-700 block mb-1">Nameservers:</span>
                   <div className="flex flex-wrap gap-2">
-                    {rdap.rdap.nameservers.map((ns, idx) => (
+                    {rdap.nameservers.map((ns, idx) => (
                       <span key={idx} className="bg-gray-100 px-2 py-1 rounded border border-gray-200 text-gray-800">{ns}</span>
                     ))}
                   </div>
                 </div>
               )}
 
-              {rdap.rdap.statuses?.length > 0 && (
+              {rdap.domain_statuses?.length > 0 && (
                 <div className="col-span-1 md:col-span-2 mt-2">
                   <span className="font-semibold text-gray-700 block mb-1">Domain Statuses:</span>
                   <div className="flex flex-wrap gap-2">
-                    {rdap.rdap.statuses.map((st, idx) => (
+                    {rdap.domain_statuses.map((st, idx) => (
                       <span key={idx} className="bg-gray-100 px-2 py-1 rounded border border-gray-200 text-gray-800">{st}</span>
                     ))}
                   </div>
@@ -160,11 +160,11 @@ export default function DomainReport({ target, collectors }) {
                   <KeyValueRow label="Port" value={tls.port} />
                   <KeyValueRow label="TLS Version" value={tls.tls_version} />
                   <KeyValueRow label="Cipher" value={tls.cipher} />
-                  <KeyValueRow label="Verified" value={tls.certificate.verified ? 'Yes' : 'No'} />
-                  {!tls.certificate.verified && <KeyValueRow label="Verification Error" value={tls.certificate.verification_error} />}
+                  <KeyValueRow label="Verified" value={tls.verification?.status === 'verified' ? 'Yes' : 'No'} />
+                  {tls.verification?.status !== 'verified' && <KeyValueRow label="Verification Error" value={tls.verification?.reason} />}
                 </div>
               </div>
-              
+
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Certificate</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -172,7 +172,7 @@ export default function DomainReport({ target, collectors }) {
                   <KeyValueRow label="Issuer" value={tls.certificate.issuer} className="col-span-1 md:col-span-2" />
                   <KeyValueRow label="Valid From" value={tls.certificate.not_before ? new Date(tls.certificate.not_before).toLocaleString() : null} />
                   <KeyValueRow label="Valid Until" value={tls.certificate.not_after ? new Date(tls.certificate.not_after).toLocaleString() : null} />
-                  <KeyValueRow label="Currently Valid" value={tls.certificate.is_valid ? 'Yes' : 'No'} />
+                  <KeyValueRow label="Currently Valid" value={tls.certificate.currently_valid ? 'Yes' : 'No'} />
                   <KeyValueRow label="Days Until Expiry" value={tls.certificate.days_until_expiry} />
                   <KeyValueRow label="Serial Number" value={tls.certificate.serial_number} />
                   <KeyValueRow label="Version" value={tls.certificate.version} />
@@ -195,7 +195,7 @@ export default function DomainReport({ target, collectors }) {
                   </div>
                 </div>
               )}
-              
+
               {tls.certificate.san_ip?.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Subject Alternative Names (IP)</h4>
@@ -219,13 +219,13 @@ export default function DomainReport({ target, collectors }) {
           {httpMeta.status === 'success' ? (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <KeyValueRow label="Final URL" value={httpMeta.url} className="col-span-1 md:col-span-2" />
+                <KeyValueRow label="Final URL" value={httpMeta.final_url} className="col-span-1 md:col-span-2" />
                 <KeyValueRow label="Status Code" value={httpMeta.status_code} />
                 <KeyValueRow label="Scheme" value={httpMeta.scheme} />
                 <KeyValueRow label="Hostname" value={httpMeta.hostname} />
                 <KeyValueRow label="Peer IP" value={httpMeta.peer_ip} />
-                <KeyValueRow label="HTTPS Reachable" value={httpMeta.reachable ? 'Yes' : 'No'} />
-                <KeyValueRow label="HTTPS Verified" value={httpMeta.verified ? 'Yes' : 'No'} />
+                <KeyValueRow label="HTTPS Reachable" value={httpMeta.https?.reachable ? 'Yes' : 'No'} />
+                <KeyValueRow label="HTTPS Verified" value={httpMeta.https?.verified ? 'Yes' : 'No'} />
                 <KeyValueRow label="Page Title" value={httpMeta.title} className="col-span-1 md:col-span-2" />
               </div>
 
