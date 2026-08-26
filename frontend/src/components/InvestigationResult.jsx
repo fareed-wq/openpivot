@@ -1,19 +1,8 @@
 import React from 'react';
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'success':
-      return 'bg-green-100 text-green-800 border-green-200';
-    case 'partial':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'error':
-    case 'timeout':
-    case 'unavailable':
-      return 'bg-red-100 text-red-800 border-red-200';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
-  }
-};
+import StatusBadge from './report/StatusBadge';
+import DomainReport from './report/DomainReport';
+import IPv4Report from './report/IPv4Report';
+import RelatedInfrastructure from './report/RelatedInfrastructure';
 
 export default function InvestigationResult({ result }) {
   if (!result) return null;
@@ -24,20 +13,34 @@ export default function InvestigationResult({ result }) {
     <div className="w-full text-left space-y-6 mt-8">
       {/* Overview Section */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Investigation Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-          <div><span className="font-semibold">Target:</span> {target?.normalized}</div>
-          <div><span className="font-semibold">Type:</span> {target?.type}</div>
+        <h3 className="text-2xl font-extrabold text-gray-900 mb-4 border-b border-gray-200 pb-3 flex flex-wrap justify-between items-center gap-4">
           <div>
-            <span className="font-semibold">Overall Status: </span> 
-            <span className={`px-2 py-0.5 rounded border text-xs font-medium uppercase ${getStatusColor(status)}`}>
-              {status}
-            </span>
+            <span className="text-gray-500 font-medium text-lg mr-2">{target?.type === 'ipv4' ? 'Public IPv4:' : 'Domain:'}</span>
+            <span className="text-blue-900">{target?.normalized}</span>
           </div>
-          <div><span className="font-semibold">Investigation ID:</span> {investigation_id}</div>
-          <div><span className="font-semibold">Started At:</span> {new Date(started_at).toLocaleString()}</div>
-          <div><span className="font-semibold">Completed At:</span> {new Date(completed_at).toLocaleString()}</div>
-          <div><span className="font-semibold">Duration:</span> {Math.round(duration_ms)} ms</div>
+          <div className="flex items-center gap-3 text-base font-medium">
+            <span className="text-gray-600">Status:</span>
+            <StatusBadge status={status} />
+          </div>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-700">
+          <div>
+            <span className="block text-gray-500 text-xs uppercase tracking-wider mb-1">Investigation ID</span>
+            <span className="font-mono text-xs">{investigation_id}</span>
+          </div>
+          <div>
+            <span className="block text-gray-500 text-xs uppercase tracking-wider mb-1">Duration</span>
+            <span>{Math.round(duration_ms)} ms</span>
+          </div>
+          <div>
+            <span className="block text-gray-500 text-xs uppercase tracking-wider mb-1">Started (UTC)</span>
+            <span>{new Date(started_at).toISOString().replace('T', ' ').substring(0, 19)}</span>
+          </div>
+          <div>
+            <span className="block text-gray-500 text-xs uppercase tracking-wider mb-1">Completed (UTC)</span>
+            <span>{new Date(completed_at).toISOString().replace('T', ' ').substring(0, 19)}</span>
+          </div>
         </div>
       </section>
 
@@ -46,58 +49,33 @@ export default function InvestigationResult({ result }) {
         <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Data Source Status</h3>
         <div className="flex flex-wrap gap-3">
           {collector_status && Object.entries(collector_status).map(([name, colStatus]) => (
-            <div key={name} className={`px-3 py-1.5 rounded-full border text-sm font-medium flex items-center gap-2 ${getStatusColor(colStatus)}`}>
-              <span className="capitalize">{name.replace(/_/g, ' ')}</span>
-              <span className="opacity-75 text-xs uppercase">{colStatus}</span>
+            <div key={name} className="px-3 py-2 rounded bg-gray-50 border border-gray-200 flex items-center gap-3">
+              <span className="capitalize font-medium text-gray-700 text-sm">{name.replace(/_/g, ' ')}</span>
+              <StatusBadge status={colStatus} />
             </div>
           ))}
         </div>
       </section>
 
-      {/* Raw Collectors */}
-      {collectors && Object.entries(collectors).map(([name, data]) => (
-        <section key={name} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2 capitalize">{name.replace(/_/g, ' ')} Output</h3>
-          <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border border-gray-200">
-            {JSON.stringify(data, null, 2)}
+      {/* Target Specific Report */}
+      {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} />}
+      {target?.type === 'ipv4' && <IPv4Report target={target} collectors={collectors} />}
+
+      {/* Related Infrastructure */}
+      <RelatedInfrastructure correlation={correlation} />
+
+      {/* Raw Data (Collapsed) */}
+      <details className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 group">
+        <summary className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600 transition-colors list-none flex items-center gap-2">
+          <span className="transform group-open:rotate-90 transition-transform">▶</span>
+          Technical Raw Data
+        </summary>
+        <div className="mt-4">
+          <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto border border-gray-200 font-mono text-gray-700 max-h-96">
+            {JSON.stringify(result, null, 2)}
           </pre>
-        </section>
-      ))}
-
-      {/* Correlation Section */}
-      {correlation && (
-        <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Correlation</h3>
-          <div className="text-sm text-gray-700 mb-4">
-            <span className="font-semibold mr-4">Entities: {correlation.entities?.length || 0}</span>
-            <span className="font-semibold">Relationships: {correlation.relationships?.length || 0}</span>
-          </div>
-          
-          {correlation.entities?.length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-bold text-gray-800 mb-2">Entities</h4>
-              <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                {correlation.entities.map((e, idx) => (
-                  <li key={idx}><span className="font-semibold">{e.type}:</span> {e.value}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {correlation.relationships?.length > 0 && (
-            <div>
-              <h4 className="font-bold text-gray-800 mb-2">Relationships</h4>
-              <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                {correlation.relationships.map((r, idx) => (
-                  <li key={idx}>
-                    {r.source} <span className="font-semibold text-blue-600 px-1">→ {r.type} →</span> {r.target}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
+        </div>
+      </details>
     </div>
   );
 }
