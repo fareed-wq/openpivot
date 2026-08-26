@@ -5,7 +5,7 @@ import DomainReport from './report/DomainReport';
 import IPv4Report from './report/IPv4Report';
 import RelatedInfrastructure from './report/RelatedInfrastructure';
 
-export default function InvestigationResult({ result }) {
+export default function InvestigationResult({ result, onPivot, isInvestigating }) {
   if (!result) return null;
 
   const { target, status, investigation_id, duration_ms, started_at, completed_at, collector_status, collectors, correlation } = result;
@@ -62,11 +62,11 @@ export default function InvestigationResult({ result }) {
       </section>
 
       {/* Target Specific Report */}
-      {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} />}
-      {target?.type === 'ipv4' && <IPv4Report target={target} collectors={collectors} />}
+      {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} onPivot={onPivot} isInvestigating={isInvestigating} />}
+      {target?.type === 'ipv4' && <IPv4Report target={target} collectors={collectors} onPivot={onPivot} isInvestigating={isInvestigating} />}
 
       {/* Related Infrastructure */}
-      <RelatedInfrastructure correlation={correlation} />
+      <RelatedInfrastructure correlation={correlation} onPivot={onPivot} isInvestigating={isInvestigating} />
 
       {/* Raw Data (Collapsed) */}
       <details className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 group">
