@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function SectionCard({ title, children, status, collapsible = false, defaultOpen = true, subtitle = null }) {
+export default function SectionCard({ id, title, children, status, collapsible = false, defaultOpen = true, subtitle = null }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  useEffect(() => {
+    if (!id || !collapsible) return;
+    const handleExpand = () => setIsOpen(true);
+    window.addEventListener(`expand-section-${id}`, handleExpand);
+    return () => window.removeEventListener(`expand-section-${id}`, handleExpand);
+  }, [id, collapsible]);
+
   return (
-    <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+    <section id={id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-24">
       <div className={`flex justify-between items-center ${isOpen ? 'mb-4 border-b pb-2' : ''}`}>
         <div className="flex-1">
           <h3 className="text-xl font-bold text-gray-900 capitalize flex items-center gap-2">

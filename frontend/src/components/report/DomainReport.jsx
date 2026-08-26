@@ -3,6 +3,7 @@ import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
 import PivotButton from './PivotButton';
+import CopyButton from './CopyButton';
 
 export default function DomainReport({ target, collectors, onPivot, isInvestigating }) {
   const dns = collectors?.dns;
@@ -25,9 +26,9 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
   return (
     <div className="space-y-6">
       {/* Domain Overview */}
-      <SectionCard title="Domain Overview">
+      <SectionCard id="sec-overview" title="Domain Overview">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <KeyValueRow label="Domain" value={target.normalized} />
+          <KeyValueRow label="Domain" value={<div className="flex items-center gap-1"><span>{target.normalized}</span><CopyButton text={target.normalized} /></div>} />
           {rdap?.registrar?.name && <KeyValueRow label="Registrar" value={rdap.registrar.name} />}
           {rdap?.registration_date && <KeyValueRow label="Registration Date" value={new Date(rdap.registration_date).toLocaleString()} />}
           {rdap?.expiration_date && <KeyValueRow label="Expiration Date" value={new Date(rdap.expiration_date).toLocaleString()} />}
@@ -39,7 +40,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
 
       {/* DNS Intelligence */}
       {dns && (
-        <SectionCard title="DNS Intelligence" status={<StatusBadge status={dns.status} />} collapsible={true} defaultOpen={false} subtitle={getDnsSubtitle()}>
+        <SectionCard id="sec-dns" title="DNS Intelligence" status={<StatusBadge status={dns.status} />} collapsible={true} defaultOpen={false} subtitle={getDnsSubtitle()}>
           {dns.status === 'success' ? (
             <div className="space-y-4">
               {['A', 'AAAA', 'MX', 'NS', 'TXT', 'CNAME', 'CAA'].map(recordType => {
@@ -60,6 +61,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
                             return (
                               <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200 flex items-center">
                                 <span>Priority {val.priority ?? val.preference}: {val.host ?? val.exchange}</span>
+                                {val.host && <CopyButton text={val.host} />}
                                 {val.host && <PivotButton target={val.host} onPivot={onPivot} disabled={isInvestigating} />}
                               </div>
                             );
@@ -79,6 +81,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
                             return (
                               <div key={idx} className="bg-gray-50 px-2 py-1 rounded border border-gray-200 flex items-center">
                                 <span>{displayVal}</span>
+                                {(recordType === 'A' || recordType === 'AAAA' || recordType === 'NS') && <CopyButton text={String(val)} />}
                                 {(recordType === 'A' || recordType === 'NS') && <PivotButton target={String(val)} onPivot={onPivot} disabled={isInvestigating} />}
                               </div>
                             );
@@ -98,7 +101,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
 
       {/* Email Security */}
       {email && (
-        <SectionCard title="Email Security" status={<StatusBadge status={email.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-email" title="Email Security" status={<StatusBadge status={email.status} />} collapsible={true} defaultOpen={false}>
           {email.status === 'success' ? (
             <div className="grid grid-cols-1 gap-4 text-sm">
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -132,11 +135,11 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
 
       {/* RDAP */}
       {rdap && (
-        <SectionCard title="Registration Information (RDAP)" status={<StatusBadge status={rdap.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-rdap" title="Registration Information (RDAP)" status={<StatusBadge status={rdap.status} />} collapsible={true} defaultOpen={false}>
           {rdap.status === 'success' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <KeyValueRow label="Registrar" value={rdap.registrar.name} />
-              <KeyValueRow label="Handle" value={rdap.handle} />
+              <KeyValueRow label="Handle" value={<div className="flex items-center gap-1"><span>{rdap.handle}</span><CopyButton text={rdap.handle} /></div>} />
               <KeyValueRow label="Registration Date" value={rdap.registration_date ? new Date(rdap.registration_date).toLocaleString() : null} />
               <KeyValueRow label="Expiration Date" value={rdap.expiration_date ? new Date(rdap.expiration_date).toLocaleString() : null} />
               <KeyValueRow label="Last Changed" value={rdap.last_changed_date ? new Date(rdap.last_changed_date).toLocaleString() : null} />
@@ -172,7 +175,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
 
       {/* TLS Certificate */}
       {tls && (
-        <SectionCard title="Certificate Information (TLS)" status={<StatusBadge status={tls.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-tls" title="Certificate Information (TLS)" status={<StatusBadge status={tls.status} />} collapsible={true} defaultOpen={false}>
           {tls.status === 'success' && tls.certificate ? (
             <div className="space-y-6 text-sm">
               <div>
@@ -202,7 +205,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
                 <div className="mt-3">
                   <span className="font-semibold text-gray-700 block mb-1">SHA-256 Fingerprint:</span>
                   <div className="bg-gray-50 p-2 border border-gray-200 rounded font-mono text-xs break-all text-gray-600">
-                    {tls.certificate.sha256_fingerprint}
+                    <div className="flex items-center gap-2"><span>{tls.certificate.sha256_fingerprint}</span><CopyButton text={tls.certificate.sha256_fingerprint} /></div>
                   </div>
                 </div>
               </div>
@@ -237,7 +240,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
 
       {/* HTTP Metadata */}
       {httpMeta && (
-        <SectionCard title="HTTP Metadata" status={<StatusBadge status={httpMeta.status} />} collapsible={true} defaultOpen={false}>
+        <SectionCard id="sec-http" title="HTTP Metadata" status={<StatusBadge status={httpMeta.status} />} collapsible={true} defaultOpen={false}>
           {httpMeta.status === 'success' ? (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
