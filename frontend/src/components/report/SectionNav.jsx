@@ -18,6 +18,7 @@ export default function SectionNav({ type, collectors, correlation }) {
 
   if (type === 'domain') {
     navItems.push({ id: 'sec-overview', label: 'Overview' });
+    if (collectors?.ct) navItems.push({ id: 'sec-assets', label: 'Assets' });
     if (collectors?.dns) navItems.push({ id: 'sec-dns', label: 'DNS' });
     if (collectors?.email_security) navItems.push({ id: 'sec-email', label: 'Email' });
     if (collectors?.rdap) navItems.push({ id: 'sec-rdap', label: 'RDAP' });

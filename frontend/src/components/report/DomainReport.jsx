@@ -11,6 +11,7 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
   const rdap = collectors?.rdap;
   const tls = collectors?.tls;
   const httpMeta = collectors?.http_metadata;
+  const ct = collectors?.ct;
 
   const getDnsSubtitle = () => {
     if (!dns?.records) return null;
@@ -37,6 +38,51 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
           {httpMeta?.status === 'success' && httpMeta.https?.reachable && <KeyValueRow label="Page Title" value={httpMeta.title || 'No title'} />}
         </div>
       </SectionCard>
+
+      {/* Passive Asset Discovery (CT) */}
+      {ct && (
+        <SectionCard id="sec-assets" title="Passive Asset Discovery" status={<StatusBadge status={ct.status} />} collapsible={true} defaultOpen={false} subtitle={ct.count ? `${ct.count} hostnames` : null}>
+          {ct.status === 'success' ? (
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
+                <div>
+                  <span className="font-semibold text-gray-700">Source:</span> {ct.source}
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-700">Discovered:</span> {ct.count}
+                </div>
+              </div>
+
+              {ct.truncated && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs px-3 py-2 rounded">
+                  Note: Results have been truncated to the first {ct.hostnames.length} discoveries to maintain performance.
+                </div>
+              )}
+
+              {ct.hostnames?.length > 0 ? (
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Hostnames</h4>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {ct.hostnames.map((hn, idx) => (
+                      <li key={idx} className="bg-gray-50 px-2 py-1.5 rounded border border-gray-200 flex items-center justify-between">
+                        <span className="truncate mr-2">{hn}</span>
+                        <div className="flex items-center flex-shrink-0">
+                          <CopyButton text={hn} />
+                          <PivotButton target={hn} onPivot={onPivot} disabled={isInvestigating} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="text-gray-500">No additional hostnames discovered.</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">Asset discovery encountered an issue: {ct.error || ct.status}</div>
+          )}
+        </SectionCard>
+      )}
 
       {/* DNS Intelligence */}
       {dns && (
