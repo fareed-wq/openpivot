@@ -5,6 +5,7 @@ import DomainReport from './report/DomainReport';
 import IPv4Report from './report/IPv4Report';
 import RelatedInfrastructure from './report/RelatedInfrastructure';
 import SectionNav from './report/SectionNav';
+import InfrastructureGraph from './report/InfrastructureGraph';
 
 export default function InvestigationResult({ result, onPivot, isInvestigating }) {
   if (!result) return null;
@@ -64,6 +65,9 @@ export default function InvestigationResult({ result, onPivot, isInvestigating }
           ))}
         </div>
       </section>
+
+      {/* Interactive Infrastructure Graph */}
+      <InfrastructureGraph correlation={correlation} onPivot={onPivot} isInvestigating={isInvestigating} />
 
       {/* Target Specific Report */}
       {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} onPivot={onPivot} isInvestigating={isInvestigating} />}
