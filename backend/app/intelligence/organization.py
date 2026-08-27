@@ -99,11 +99,16 @@ def derive_organization_footprint(collectors: Dict[str, Any], correlation: Dict[
                     footprint["nameservers"].append(v_clean)
         
         if recs.get("MX") and recs["MX"].get("status") == "success":
-            for v in recs["MX"].get("values", []):
-                parts = v.split()
-                host = parts[-1].lower().rstrip('.')
-                if host not in footprint["mail_hosts"]:
-                    footprint["mail_hosts"].append(host)
+            for mx in recs["MX"].get("values", []):
+                if isinstance(mx, dict):
+                    host = mx.get("host")
+                else:
+                    parts = str(mx).split()
+                    host = parts[-1]
+                if host:
+                    host_clean = host.lower().rstrip('.')
+                    if host_clean not in footprint["mail_hosts"]:
+                        footprint["mail_hosts"].append(host_clean)
 
     # 5. Web Footprint
     http_data = collectors.get("http_metadata")
