@@ -1,11 +1,12 @@
 import React from 'react';
+import OrganizationFootprint from './OrganizationFootprint';
 import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
 import PivotButton from './PivotButton';
 import CopyButton from './CopyButton';
 
-export default function DomainReport({ target, collectors, onPivot, isInvestigating }) {
+export default function DomainReport({ target, collectors, organization, onPivot, isInvestigating }) {
   const dns = collectors?.dns;
   const email = collectors?.email_security;
   const rdap = collectors?.rdap;
@@ -37,6 +38,77 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
           {httpMeta?.status === 'success' && httpMeta.https?.reachable && <KeyValueRow label="Page Title" value={httpMeta.title || 'No title'} />}
         </div>
       </SectionCard>
+
+
+      {/* Web Footprint Intelligence */}
+      {httpMeta?.web_footprint && (
+        <SectionCard id="sec-web" title="Web Footprint Intelligence" status={<StatusBadge status={httpMeta.status} />} collapsible={true} defaultOpen={false} subtitle={httpMeta.web_footprint.technology_count ? `${httpMeta.web_footprint.technology_count} technologies detected` : null}>
+          <div className="space-y-6 text-sm">
+            {/* Web Metadata */}
+            {httpMeta.web_footprint.metadata && Object.keys(httpMeta.web_footprint.metadata).length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Web Metadata</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {httpMeta.web_footprint.metadata.title && <KeyValueRow label="Page Title" value={httpMeta.web_footprint.metadata.title} className="col-span-1 md:col-span-2" />}
+                  {httpMeta.web_footprint.metadata.description && <KeyValueRow label="Description" value={httpMeta.web_footprint.metadata.description} className="col-span-1 md:col-span-2" />}
+                  {httpMeta.web_footprint.metadata.canonical_url && (
+                    <KeyValueRow label="Canonical URL" value={
+                      <div className="flex items-center gap-1">
+                        <span className="break-all">{httpMeta.web_footprint.metadata.canonical_url}</span>
+                        <CopyButton text={httpMeta.web_footprint.metadata.canonical_url} />
+                      </div>
+                    } className="col-span-1 md:col-span-2" />
+                  )}
+                  {httpMeta.web_footprint.metadata.generator && <KeyValueRow label="Generator" value={httpMeta.web_footprint.metadata.generator} />}
+                  {httpMeta.web_footprint.metadata.favicon_url && (
+                    <KeyValueRow label="Favicon URL" value={
+                      <div className="flex items-center gap-1">
+                        <span className="break-all">{httpMeta.web_footprint.metadata.favicon_url}</span>
+                        <CopyButton text={httpMeta.web_footprint.metadata.favicon_url} />
+                      </div>
+                    } />
+                  )}
+                  {httpMeta.web_footprint.metadata.language && <KeyValueRow label="Language" value={httpMeta.web_footprint.metadata.language} />}
+                </div>
+              </div>
+            )}
+
+            {/* Detected Technologies */}
+            {httpMeta.web_footprint.technologies?.length > 0 ? (
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Detected Technologies</h4>
+                <div className="space-y-2">
+                  {httpMeta.web_footprint.technologies.map((tech, idx) => (
+                    <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                      <div className="flex flex-wrap justify-between items-start gap-2">
+                        <div>
+                          <span className="font-semibold text-gray-900">{tech.name}</span>
+                          <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{tech.category}</span>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                          tech.confidence === 'high' ? 'bg-green-100 text-green-800' :
+                          tech.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {tech.confidence}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-600 break-all">
+                        <span className="text-gray-500">Evidence:</span> {tech.evidence}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500">No technologies detected from available signals.</div>
+            )}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Organization Footprint */}
+      <OrganizationFootprint organization={organization} onPivot={onPivot} isInvestigating={isInvestigating} />
 
       {/* DNS Intelligence */}
       {dns && (

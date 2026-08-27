@@ -17,3 +17,4 @@ class InvestigationResult(BaseModel):
     collectors: Dict[str, Any] = Field(default_factory=dict)
     collector_status: Dict[str, str] = Field(default_factory=dict)
     correlation: Optional[CorrelationResult] = None
+    organization_footprint: Optional[Dict[str, Any]] = None

@@ -1,11 +1,12 @@
 import React from 'react';
+import OrganizationFootprint from './OrganizationFootprint';
 import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
 import PivotButton from './PivotButton';
 import CopyButton from './CopyButton';
 
-export default function IPv4Report({ target, collectors, onPivot, isInvestigating }) {
+export default function IPv4Report({ target, collectors, organization, onPivot, isInvestigating }) {
   const ip = collectors?.ip;
   const asn = collectors?.asn;
 
