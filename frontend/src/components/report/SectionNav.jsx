@@ -23,6 +23,7 @@ export default function SectionNav({ type, collectors, correlation }) {
     if (collectors?.rdap) navItems.push({ id: 'sec-rdap', label: 'RDAP' });
     if (collectors?.tls) navItems.push({ id: 'sec-tls', label: 'TLS' });
     if (collectors?.http_metadata) navItems.push({ id: 'sec-http', label: 'HTTP' });
+    if (collectors?.http_metadata?.web_footprint) navItems.push({ id: 'sec-web', label: 'Web' });
   } else if (type === 'ipv4') {
     navItems.push({ id: 'sec-overview', label: 'Overview' });
     if (collectors?.ip) {

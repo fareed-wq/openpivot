@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 class RedirectRecord(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -26,3 +26,4 @@ class HTTPMetadataResult(BaseModel):
     redirects: List[RedirectRecord] = Field(default_factory=list)
     headers: Dict[str, str] = Field(default_factory=dict)
     title: Optional[str] = None
+    web_footprint: Optional[Dict[str, Any]] = None

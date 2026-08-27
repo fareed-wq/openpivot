@@ -8,6 +8,7 @@ from typing import Optional, Dict, Tuple, List
 
 from app.core.network_safety import resolve_safe_addresses, NetworkSafetyError, SafeHTTPConnection, SafeHTTPSConnection
 from app.models.http_metadata import HTTPMetadataResult, HTTPSContext, RedirectRecord
+from app.intelligence.web_footprint import build_web_footprint
 
 CONNECT_TIMEOUT = 4.0
 READ_TIMEOUT = 5.0
@@ -20,7 +21,19 @@ ALLOWED_HEADERS = {
     "content-length",
     "content-language",
     "via",
-    "x-powered-by"
+    "x-powered-by",
+    "x-aspnet-version",
+    "x-drupal-cache",
+    "x-generator",
+    "x-nextjs-cache",
+    "x-vercel-id",
+    "x-nf-request-id",
+    "x-served-by",
+    "x-cache",
+    "x-amz-cf-id",
+    "x-amz-cf-pop",
+    "x-akamai-transformed",
+    "cf-ray",
 }
 
 
@@ -235,7 +248,7 @@ def collect_http_metadata(domain: str) -> dict:
             headers_dict[k_lower] = v[:1024]
     result.headers = headers_dict
 
-    # Read body for title
+    # Read body for title + web footprint
     content_type = headers_dict.get("content-type", "").lower()
     if "text/html" in content_type:
         try:
@@ -243,6 +256,11 @@ def collect_http_metadata(domain: str) -> dict:
             title = _extract_title(body)
             if title:
                 result.title = title
+            # Web Footprint Intelligence — reuses same body + headers
+            try:
+                result.web_footprint = build_web_footprint(headers_dict, body, final_url=current_url)
+            except Exception:
+                pass
         except socket.timeout:
             result.status = "partial"
         except Exception:
