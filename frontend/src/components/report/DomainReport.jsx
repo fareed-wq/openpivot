@@ -6,7 +6,7 @@ import StatusBadge from './StatusBadge';
 import PivotButton from './PivotButton';
 import CopyButton from './CopyButton';
 
-export default function DomainReport({ target, collectors, onPivot, isInvestigating }) {
+export default function DomainReport({ target, collectors, organization, onPivot, isInvestigating }) {
   const dns = collectors?.dns;
   const email = collectors?.email_security;
   const rdap = collectors?.rdap;
