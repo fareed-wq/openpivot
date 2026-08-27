@@ -11,6 +11,11 @@ export default function SectionNav({ type, collectors, correlation }) {
   };
 
   const navItems = [];
+
+  if (correlation && (correlation.entities?.length > 0 || correlation.relationships?.length > 0)) {
+    navItems.push({ id: 'sec-graph', label: 'Graph' });
+  }
+
   if (type === 'domain') {
     navItems.push({ id: 'sec-overview', label: 'Overview' });
     if (collectors?.dns) navItems.push({ id: 'sec-dns', label: 'DNS' });
