@@ -1,4 +1,5 @@
 import React from 'react';
+import OrganizationFootprint from './OrganizationFootprint';
 import SectionCard from './SectionCard';
 import KeyValueRow from './KeyValueRow';
 import StatusBadge from './StatusBadge';
@@ -105,6 +106,9 @@ export default function DomainReport({ target, collectors, onPivot, isInvestigat
           </div>
         </SectionCard>
       )}
+
+      {/* Organization Footprint */}
+      <OrganizationFootprint organization={organization} onPivot={onPivot} isInvestigating={isInvestigating} />
 
       {/* DNS Intelligence */}
       {dns && (

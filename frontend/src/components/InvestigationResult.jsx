@@ -15,7 +15,7 @@ export default function InvestigationResult({ result, onPivot, isInvestigating }
   return (
     <div className="w-full text-left space-y-6 mt-8">
       {/* Navigation */}
-      <SectionNav type={target?.type} collectors={collectors} correlation={correlation} />
+      <SectionNav type={target?.type} collectors={collectors} correlation={correlation} organization={result.organization_footprint} />
 
       {/* Overview Section */}
       <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -70,8 +70,8 @@ export default function InvestigationResult({ result, onPivot, isInvestigating }
       <InfrastructureGraph correlation={correlation} onPivot={onPivot} isInvestigating={isInvestigating} />
 
       {/* Target Specific Report */}
-      {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} onPivot={onPivot} isInvestigating={isInvestigating} />}
-      {target?.type === 'ipv4' && <IPv4Report target={target} collectors={collectors} onPivot={onPivot} isInvestigating={isInvestigating} />}
+      {target?.type === 'domain' && <DomainReport target={target} collectors={collectors} organization={result.organization_footprint} onPivot={onPivot} isInvestigating={isInvestigating} />}
+      {target?.type === 'ipv4' && <IPv4Report target={target} collectors={collectors} organization={result.organization_footprint} onPivot={onPivot} isInvestigating={isInvestigating} />}
 
       {/* Related Infrastructure */}
       <RelatedInfrastructure correlation={correlation} onPivot={onPivot} isInvestigating={isInvestigating} />

@@ -17,23 +17,23 @@ def test_dns_correlation():
             "MX": {"status": "success", "values": [{"priority": 10, "host": "mail.example.com"}]}
         }
     }
-    
+
     res = build_correlations(dns_result=dns_res)
-    
+
     ent_ids = [e["id"] for e in res["entities"]]
     assert "domain:example.com" in ent_ids
     assert "ip:93.184.216.34" in ent_ids
     assert "ip:2606:2800:220:1:248:1893:25c8:1946" in ent_ids
-    assert "ns:ns1.example.net" in ent_ids
-    assert "mx:mail.example.com" in ent_ids
-    
+    assert "host:ns1.example.net" in ent_ids
+    assert "host:mail.example.com" in ent_ids
+
     # Check lengths for deduplication
     assert len(res["entities"]) == 5
     assert len(res["relationships"]) == 4
-    
+
     rel_ids = [f"{r['source']}|{r['type']}|{r['target']}" for r in res["relationships"]]
     assert "domain:example.com|resolves_to|ip:93.184.216.34" in rel_ids
-    assert "domain:example.com|uses_nameserver|ns:ns1.example.net" in rel_ids
+    assert "domain:example.com|uses_nameserver|host:ns1.example.net" in rel_ids
 
 def test_tls_correlation():
     tls_res = {
@@ -46,15 +46,15 @@ def test_tls_correlation():
             "san_dns": ["example.com", "www.example.com"]
         }
     }
-    
+
     res = build_correlations(tls_result=tls_res)
-    
+
     ent_ids = [e["id"] for e in res["entities"]]
     assert "domain:example.com" in ent_ids
     assert "cert:abcdef123456" in ent_ids
     assert "host:example.com" in ent_ids
     assert "host:www.example.com" in ent_ids
-    
+
     rel_ids = [f"{r['source']}|{r['type']}|{r['target']}" for r in res["relationships"]]
     assert "domain:example.com|presents_certificate|cert:abcdef123456" in rel_ids
     assert "cert:abcdef123456|contains_hostname|host:example.com" in rel_ids
@@ -77,7 +77,7 @@ def test_ip_and_asn_correlation():
             "hostname": "dns.google"
         }
     }
-    
+
     asn_res = {
         "origin": {
             "ip": "8.8.8.8",
@@ -94,21 +94,21 @@ def test_ip_and_asn_correlation():
             }
         }
     }
-    
+
     res = build_correlations(ip_result=ip_res, asn_result=asn_res)
-    
+
     ent_ids = [e["id"] for e in res["entities"]]
     assert "ip:8.8.8.8" in ent_ids
     assert "host:dns.google" in ent_ids
     assert "asn:15169" in ent_ids
     assert "org:gogl" in ent_ids
-    
+
     rel_ids = [f"{r['source']}|{r['type']}|{r['target']}" for r in res["relationships"]]
     assert "ip:8.8.8.8|reverse_resolves_to|host:dns.google" in rel_ids
     assert "ip:8.8.8.8|announced_by|asn:15169" in rel_ids
     assert "ip:8.8.8.8|registered_to|org:gogl" in rel_ids
     assert "asn:15169|registered_to|org:gogl" in rel_ids
-    
+
     # Organization source_collectors should merge
     org_rel = next(r for r in res["relationships"] if r["source"] == "ip:8.8.8.8" and r["target"] == "org:gogl")
     assert "ip_rdap" in org_rel["source_collectors"]
@@ -123,7 +123,7 @@ def test_org_deduplication():
             }
         }
     }
-    
+
     # ASN has name and handle
     asn_res = {
         "asn": {
@@ -134,9 +134,9 @@ def test_org_deduplication():
             }
         }
     }
-    
+
     res = build_correlations(ip_result=ip_res, asn_result=asn_res)
-    
+
     ent_ids = [e["id"] for e in res["entities"]]
     assert "org:cf" in ent_ids
     assert "org:name_cloudflare,_inc." not in ent_ids
@@ -151,13 +151,54 @@ def test_ordering():
         }
     }
     res = build_correlations(dns_result=dns_res)
-    
+
     ent_ids = [e["id"] for e in res["entities"]]
     # Domain first (d before i), then IP 1.1.1.1 before 2.2.2.2
     assert ent_ids == ["domain:b.com", "ip:1.1.1.1", "ip:2.2.2.2"]
-    
+
     rel_ids = [f"{r['source']}|{r['type']}|{r['target']}" for r in res["relationships"]]
     assert rel_ids == [
         "domain:b.com|resolves_to|ip:1.1.1.1",
         "domain:b.com|resolves_to|ip:2.2.2.2"
     ]
+
+
+def test_domain_rdap_correlation():
+    rdap_res = {
+        "status": "success",
+        "domain": "example.com",
+        "organization": {
+            "name": "Example Org"
+        }
+    }
+    res = build_correlations(rdap_result=rdap_res)
+    ent_ids = [e["id"] for e in res["entities"]]
+    assert "domain:example.com" in ent_ids
+    assert any(e.startswith("org:") for e in ent_ids)
+
+    rel_ids = [f"{r['source']}|{r['type']}|{r['target']}" for r in res["relationships"]]
+    assert any(r.startswith("domain:example.com|registered_to|org:") for r in rel_ids)
+
+def test_web_footprint_correlation():
+    domain_res = {"domain": "example.com"}
+    http_res = {
+        "status": "success",
+        "web_footprint": {
+            "technologies": [
+                {"name": "React", "category": "Framework", "confidence": "high", "evidence": "detected"}
+            ]
+        }
+    }
+    res = build_correlations(domain_result=domain_res, http_result=http_res)
+
+    ent_ids = [e["id"] for e in res["entities"]]
+    assert "domain:example.com" in ent_ids
+    assert "tech:react" in ent_ids
+
+    react_ent = next(e for e in res["entities"] if e["id"] == "tech:react")
+    assert react_ent["type"] == "technology"
+    assert react_ent["attributes"].get("category") == "Framework"
+
+    rel = next(r for r in res["relationships"] if r["type"] == "uses_technology")
+    assert rel["attributes"].get("confidence") == "high"
+    assert rel["attributes"].get("evidence") == "detected"

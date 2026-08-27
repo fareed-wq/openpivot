@@ -12,6 +12,7 @@ class Relationship(BaseModel):
     target: str
     type: str
     source_collectors: List[str] = Field(default_factory=list)
+    attributes: Dict[str, Any] = Field(default_factory=dict)
 
 class CorrelationResult(BaseModel):
     entities: List[Entity] = Field(default_factory=list)
