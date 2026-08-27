@@ -5,12 +5,12 @@ import CopyButton from './CopyButton';
 import PivotButton from './PivotButton';
 
 export default function OrganizationFootprint({ organization, onPivot, isInvestigating }) {
-  if (!organization || organization.counts?.organizations === 0) return null;
+  if (!organization || !organization.counts || !Object.values(organization.counts).some(v => v > 0)) return null;
 
   return (
     <SectionCard id="sec-org" title="Organization Technical Footprint" collapsible={true} defaultOpen={false}>
       <div className="space-y-6 text-sm">
-        
+
         {/* Organizations */}
         {organization.organizations?.length > 0 && (
           <div>
@@ -44,7 +44,7 @@ export default function OrganizationFootprint({ organization, onPivot, isInvesti
 
         {/* Associated Infrastructure */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* ASNs */}
           {organization.asns?.length > 0 && (
             <div>

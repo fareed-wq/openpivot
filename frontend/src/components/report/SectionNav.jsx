@@ -18,7 +18,7 @@ export default function SectionNav({ type, collectors, correlation, organization
 
   if (type === 'domain') {
     navItems.push({ id: 'sec-overview', label: 'Overview' });
-    if (organization && organization.counts?.organizations > 0) navItems.push({ id: 'sec-org', label: 'Organization' });
+    if (organization && Object.values(organization.counts || {}).some(v => v > 0)) navItems.push({ id: 'sec-org', label: 'Organization' });
     if (collectors?.dns) navItems.push({ id: 'sec-dns', label: 'DNS' });
     if (collectors?.email_security) navItems.push({ id: 'sec-email', label: 'Email' });
     if (collectors?.rdap) navItems.push({ id: 'sec-rdap', label: 'RDAP' });
@@ -27,7 +27,7 @@ export default function SectionNav({ type, collectors, correlation, organization
     if (collectors?.http_metadata?.web_footprint) navItems.push({ id: 'sec-web', label: 'Web' });
   } else if (type === 'ipv4') {
     navItems.push({ id: 'sec-overview', label: 'Overview' });
-    if (organization && organization.counts?.organizations > 0) navItems.push({ id: 'sec-org', label: 'Organization' });
+    if (organization && Object.values(organization.counts || {}).some(v => v > 0)) navItems.push({ id: 'sec-org', label: 'Organization' });
     if (collectors?.ip) {
       navItems.push({ id: 'sec-rdap', label: 'RDAP' });
       navItems.push({ id: 'sec-reversedns', label: 'Reverse DNS' });
