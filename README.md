@@ -1,294 +1,159 @@
-# OpenPivot
+﻿# OpenPivot
 
-OpenPivot is a lightweight technical OSINT and public-infrastructure intelligence platform for investigating domains and public IPv4 addresses. It gathers, structures, and correlates publicly available technical information using passive, non-intrusive collection — with a zero-cost architecture that requires no paid APIs, no AI services, and no GPU.
+Public technical infrastructure intelligence and correlation platform for domains and public IP addresses.
 
-## Purpose
+## Overview
 
-OpenPivot collects and correlates publicly available technical data about:
+OpenPivot is a platform that collects, normalizes, correlates, and visualizes publicly available technical infrastructure data. It empowers users to map digital footprints efficiently and securely.
 
-- Domains and DNS records
-- Email security configuration (SPF, DMARC, MX)
-- Domain registration data (RDAP)
-- TLS certificates
-- HTTP response metadata
-- Public IPv4 network allocations
-- Reverse DNS hostnames
-- ASN and routing ownership
-- Related infrastructure relationships
+Key principles:
+- **Passive/Public Intelligence**: Data is sourced exclusively from public registries and protocols without active probing.
+- **Controlled Investigation**: Investigations are explicitly user-driven, ensuring predictable and bound data collection.
+- **Evidence-Based Correlation**: Infrastructure relationships are drawn directly from verifiable registry and protocol artifacts.
+- **Strictly Non-Intrusive**: OpenPivot does not perform vulnerability exploitation, brute forcing, or intrusive scanning.
 
-All data comes from public protocols and registries. OpenPivot does not perform vulnerability scanning, exploitation, or personal tracking.
+## Core Features
 
-## Key Features
+- **Domain Investigation**
+- **Public IPv4 Investigation**
+- **DNS Intelligence**: Resolution, nameservers, TXT, CAA, etc.
+- **Email Security Records**: SPF, DMARC, and MX providers.
+- **Domain/IP RDAP**: Deep registry and allocation data.
+- **TLS/Certificate Intelligence**: Issuers, SANs, and expiry data.
+- **HTTP Metadata**: Safe, isolated web header and redirect collection.
+- **ASN/Routing Intelligence**: Origin ASN and registration/network context.
+- **Web Footprint Intelligence**:
+  - Web metadata extraction (titles, canonicals, generators).
+  - Technology detection (server, framework, CDN/proxy).
+  - Evidence + confidence metrics for derived technologies.
+- **Organization Technical Footprint**: Synthesized organization registry and network summaries.
+- **Enhanced Cross-Source Correlation**: Multi-collector graph mapping.
+- **Interactive Infrastructure Graph**: Visual relationship discovery.
+- **Investigation Summary**: High-level status overview.
+- **Collapsible Reports**: Modular sections open and close intuitively.
+- **Controlled Pivot Actions**: Explicitly pivot into related domains and IPs.
+- **One-step Back**: Navigate history safely.
+- **Sticky Section Navigation**: Sticky report navigation for fast scrolling.
+- **Copy Utilities**: One-click copying for artifacts.
+- **Technical Raw Data**: Inspect underlying JSON structures seamlessly.
 
-- Domain and public IPv4 investigation
-- Strict target validation (private/internal targets blocked)
-- DNS intelligence (A, AAAA, MX, NS, TXT, CNAME, CAA)
-- SPF / DMARC / MX provider visibility
-- Domain RDAP registration intelligence
-- TLS certificate intelligence (chain, SAN, expiry, verification)
-- Safe HTTP metadata collection (headers, redirects, server identity)
-- IP network RDAP (allocation, organization, prefixes)
-- Reverse DNS
-- IP to ASN discovery (Team Cymru + RDAP)
-- ASN registration intelligence
-- Infrastructure correlation engine
-- Structured investigation report UI
-- Graceful collector failure isolation
-- SSRF / DNS-rebinding protections on all outbound connections
+## Correlation Examples
 
-## Infrastructure Correlation
+OpenPivot automatically discovers evidence-backed relationships across separate collectors, unifying disparate protocol data:
 
-OpenPivot automatically discovers relationships across collectors:
-
-```text
-Domain → IP → ASN → Organization
-```
-
-Example relationships:
-
+- Domain → IP
+- IP → ASN
+- ASN → Organization
 - Domain → Nameserver
-- Domain → Mail Server
-- Domain → Certificate
-- Certificate → SAN Hostname
-- IP → Reverse DNS Hostname
-- IP → ASN → Organization
+- Domain → Mail Host
+- Domain → Technology
+- Domain → Organization
 
-In v0.1, correlation is single-depth. OpenPivot does not automatically perform recursive investigation of discovered infrastructure.
+## Interactive Graph
 
-## Tech Stack
+The interactive infrastructure graph visualizes technical relationships natively in the browser.
+- Supports smooth drag, pan, and zoom operations.
+- Entities are rendered as selectable nodes categorized by type.
+- Edges prominently feature relationship labels (e.g., esolves_to, uses_technology).
+- Supports **controlled Pivot** directly from supported domain and IP nodes.
 
-**Frontend:**
-- React
-- Vite
-- Tailwind CSS
+## Web Footprint Intelligence
 
-**Backend:**
-- Python
-- FastAPI
-- dnspython
-- cryptography
+OpenPivot automatically distills complex HTTP responses into structured metadata and technology identifications. Technology detection evaluates exact evidence (e.g., headers or HTML patterns) and asserts a confidence level (high, medium, low). This mechanism provides factual operational context and strictly avoids assigning arbitrary security or vulnerability scores.
 
-**Database:** Not required for v0.1. All investigations are stateless.
+## Organization Footprint
 
-## Requirements
+The Organization Technical Footprint dynamically derives an evidence-backed organization summary from the already collected data (Domain RDAP, IP RDAP, ASN Registration, DNS, and HTTP). It efficiently synthesizes organization names, IPs, prefixes, nameservers, mail hosts, and technologies without generating any additional network requests. Note that organization context markers (e.g., country codes) represent registry allocation contexts, not physical server locations.
 
-- Python 3.13+
-- Node.js
-- npm
-- Git
+## Architecture
 
-## Setup (Windows)
+**Frontend:** React, Vite, Tailwind CSS
+**Backend:** Python, FastAPI
+**Deployment:** Vercel
+
+The platform follows a modular pipeline: input validation routes targets to relevant modular collectors (DNS, RDAP, HTTP, etc.) which are orchestrated per investigation with isolated failures and strict timeouts. Results are merged and passed to the correlation engine, which resolves nodes and relationships for the frontend React application.
+
+## Safety & Scope
+
+OpenPivot is designed for safe, passive technical intelligence:
+
+- **Public targets only**: Explicitly accepts only public domains and globally routable public IPv4 addresses.
+- **Private targets blocked**: Localhost, RFC1918, link-local, and non-global destinations are rejected.
+- **SSRF protections**: All outbound connections pre-resolve and validate destinations to prevent DNS-rebinding and Server-Side Request Forgery.
+- **Bounded execution**: Network timeouts, max redirects, and max response sizes are strictly enforced.
+- **Isolated failures**: Individual collector timeouts or errors do not crash the investigation.
+- **No recursive automatic pivots**: Pivots require explicit user interaction.
+- **No active exploitation**: No fuzzing, payload injection, or port scanning.
+- **No personal OSINT**: Built for technical infrastructure, not credential or people discovery.
+
+## Project Structure
+
+`	ext
+backend/
+  app/
+    api/              # FastAPI route handlers
+    core/             # Core application configurations
+    intelligence/     # Data collectors, correlation, and synthesis engines
+    models/           # Pydantic schemas
+frontend/
+  src/
+    components/       # React UI components (Graph, Reports)
+`
+
+## Setup & Local Development (Windows)
 
 From the repository root:
 
 **Create and activate the backend virtual environment:**
-
-```powershell
+`powershell
 python -m venv backend\.venv
 backend\.venv\Scripts\activate
-```
+`
 
 **Install backend dependencies:**
-
-```powershell
+`powershell
 pip install -r backend\requirements.txt
-```
+`
 
 **Install frontend dependencies:**
-
-```powershell
+`powershell
 cd frontend
 npm install
 cd ..
-```
+`
 
-## Run the Backend
-
-```powershell
+**Run the Backend:**
+`powershell
 cd backend
 .venv\Scripts\activate
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
+`
 
-| Endpoint | URL |
-|---|---|
-| Backend | http://127.0.0.1:8000 |
-| Swagger docs | http://127.0.0.1:8000/docs |
-| Health check | http://127.0.0.1:8000/health |
-
-## Run the Frontend
-
-```powershell
+**Run the Frontend:**
+`powershell
 cd frontend
 npm run dev
-```
-
-Frontend: http://127.0.0.1:8080
-
-The Vite dev server proxies `/api` requests to the local FastAPI backend automatically. Do not hardcode backend URLs in the frontend.
-
-## Usage
-
-Enter a target in the investigation form and submit.
-
-**Supported inputs:**
-
-```
-example.com
-8.8.8.8
-```
-
-**Not supported:**
-
-```
-https://example.com    (URLs are not accepted)
-localhost              (private/internal targets blocked)
-192.168.1.1            (RFC1918 addresses blocked)
-```
-
-OpenPivot currently accepts domain names and globally routable public IPv4 addresses.
-
-## API Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/` | API status |
-| `GET` | `/health` | Health check |
-| `POST` | `/validate` | Validate and classify a target |
-| `POST` | `/investigate` | Run a full investigation |
-| `GET` | `/docs` | Swagger UI |
-
-**Example — POST /investigate:**
-
-```json
-{
-  "target": "example.com"
-}
-```
-
-The response contains structured collector results, collector statuses, and a correlation graph with entities and relationships.
-
-## Investigation Flow
-
-```text
-Input
-  ↓
-Target Validation
-  ↓
-Collector Routing (domain or IPv4)
-  ↓
-Relevant Collectors (parallel, failure-isolated)
-  ↓
-Correlation Engine
-  ↓
-Structured Investigation Report
-```
-
-**Domain investigation runs:**
-
-DNS → Email Security → RDAP → TLS → HTTP Metadata
-
-**IPv4 investigation runs:**
-
-Network RDAP + Reverse DNS → ASN Intelligence
-
-Each collector runs independently. If one collector fails or times out, the others still return results and the investigation completes with a partial status.
-
-## Safety and Scope
-
-OpenPivot is designed for passive technical intelligence using publicly available infrastructure information.
-
-**v0.1 does NOT perform:**
-
-- Vulnerability exploitation or testing
-- Brute force or credential attacks
-- Port scanning
-- Content fuzzing or active payload testing
-- Private-network reconnaissance
-- Recursive crawling or spidering
-- Personal or people-focused OSINT
-- Precise device or person geolocation
-
-**Network safety controls:**
-
-- Localhost, RFC1918, link-local, and non-global destinations are blocked
-- All outbound HTTP and RDAP connections validate the destination IP before connecting
-- Redirects are bounded and each hop is revalidated
-- Socket connections use pre-resolved validated IPs to prevent DNS rebinding
-
-## Privacy
-
-OpenPivot intentionally focuses on organization-level and network-level registration data.
-
-It does not intentionally expose:
-
-- Registrant personal names
-- Personal email addresses
-- Phone numbers
-- Street addresses
-
-Individual-kind RDAP entities are filtered from results. Country fields represent registration or allocation context, not precise physical location.
+`
+*(The Vite dev server runs on http://127.0.0.1:8080 and proxies /api requests to the local FastAPI backend)*
 
 ## Testing
 
-**Run backend tests from the repository root:**
-
-```powershell
+**Backend Tests:**
+`powershell
 backend\.venv\Scripts\python.exe -m pytest backend\tests
-```
+`
+*(Current verified status: 110 tests passing)*
 
-Current verified result: 85 backend tests passing.
-
-**Run frontend production build:**
-
-```powershell
+**Frontend Build:**
+`powershell
 cd frontend
 npm run build
-```
+`
 
-There are no automated frontend UI tests in v0.1.
+## Deployment
+
+OpenPivot is configured for seamless deployment to Vercel within a single Vercel project. The architecture utilizes a standard Vite frontend configuration, while the backend API routes are powered natively by Vercel Python Serverless Functions executing FastAPI.
 
 ## Project Status
 
-**OpenPivot v0.1 MVP**
-
-Implemented:
-
-- Domain investigations (DNS, email security, RDAP, TLS, HTTP metadata)
-- IPv4 investigations (network RDAP, reverse DNS, ASN intelligence)
-- Infrastructure correlation engine
-- Investigation report UI
-- SSRF / DNS-rebinding network protections
-- 85 backend tests
-
-**Possible future work:**
-
-- Optional authentication and investigation history
-- Caching and rate limiting
-- Optional public threat-intelligence adapters
-- Certificate transparency log integration
-- JSON / CSV / PDF report exports
-- Bounded collector concurrency
-- Controlled pivot workflows
-
-No timelines are committed for future items.
-
-## Zero-Cost Design
-
-The current MVP is built around:
-
-- Free public protocols and data sources (DNS, RDAP, TLS, HTTP)
-- No paid API requirement
-- No AI API requirement
-- No local LLM or GPU requirement
-- Lightweight local development with standard tools
-
-## Development Workflow
-
-```text
-dev → Pull Request → main
-```
-
-- Feature development occurs on the `dev` branch
-- No direct feature pushes to `main`
-- Small, focused commits preferred
+OpenPivot operates as a working open-source technical OSINT portfolio project. It is continually refined to model safe, scalable, and modular intelligence gathering.
